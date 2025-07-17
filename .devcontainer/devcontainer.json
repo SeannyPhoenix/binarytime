@@ -1,0 +1,23 @@
+{
+  "name": "binarytime",
+	"image": "mcr.microsoft.com/devcontainers/base:debian",
+  "features": {
+		"ghcr.io/devcontainers/features/aws-cli:1": "latest",
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/devcontainers/features/github-cli": "latest",
+		"ghcr.io/devcontainers/features/go": {},
+		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {"packages": "bash-completion"},
+		"ghcr.io/devcontainers-extra/features/typescript:2": {}
+	},
+	"containerEnv": {
+		"AWS_PROFILE": "bogie"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"Github.copilot",
+				"GitHub.copilot-chat"
+			]
+		}
+	}
+}
