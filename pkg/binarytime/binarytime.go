@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/seannyphoenix/binarytime/pkg/byteglyph"
 )
 
 type BinaryTime struct {
@@ -51,6 +53,39 @@ func (bt BinaryTime) String() string {
 	return coarse(bt)
 }
 
+func (bt BinaryTime) StringFine() string {
+	return fine(bt)
+}
+
+func (bt BinaryTime) Glyphs() string {
+	bytes := make([]byte, 16)
+	bt.value.FillBytes(bytes)
+
+	// return byteglyph.Glyphs(bytes[6:10], 2)
+	return byteglyph.Glyphs(bytes, 8)
+}
+
+func (bt BinaryTime) TimeGlyphs() string {
+	bytes := make([]byte, 16)
+	bt.value.FillBytes(bytes)
+
+	return byteglyph.Glyphs(bytes[8:10], 0)
+}
+
+func (bt BinaryTime) DateGlyphs() string {
+	bytes := make([]byte, 16)
+	bt.value.FillBytes(bytes)
+
+	return byteglyph.Glyphs(bytes[6:8], 2)
+}
+
+func (bt BinaryTime) DateTimeGlyphs() string {
+	bytes := make([]byte, 16)
+	bt.value.FillBytes(bytes)
+
+	return byteglyph.Glyphs(bytes[6:10], 2)
+}
+
 func (bt BinaryTime) IsZero() bool {
 	return bt.value.Sign() == 0
 }
@@ -60,13 +95,18 @@ func (bt BinaryTime) Value() *big.Int {
 	return &cp.value
 }
 
-const dayNs = uint64(86_400_000_000_000)
+func (bt BinaryTime) Equals(other BinaryTime) bool {
+	return bt.value.Cmp(&other.value) == 0
+}
+
+const (
+	dayNs = uint64(86_400_000_000_000)
+	epoch = int64(1 << 32) // 2^32 days before the Unix epoch (1970-01-01T00:00:00Z), or about 11.76 million years
+)
 
 func getDays(ns int64) uint64 {
-	if ns < 0 {
-		ns = -ns
-	}
-	return uint64(ns) / dayNs
+	days := ns / int64(dayNs)
+	return uint64(days + epoch)
 }
 
 func getSubDay(ns uint64) uint64 {
@@ -105,4 +145,14 @@ func coarse(bt BinaryTime) string {
 	subDays := binary.BigEndian.Uint16(bytes[8:10])
 
 	return fmt.Sprintf("%04X:%04X", days, subDays)
+}
+
+func fine(bt BinaryTime) string {
+	bytes := make([]byte, 16)
+	bt.value.FillBytes(bytes)
+
+	days := binary.BigEndian.Uint64(bytes[:8])
+	subDays := binary.BigEndian.Uint64(bytes[8:])
+
+	return fmt.Sprintf("%016X:%016X", days, subDays)
 }
