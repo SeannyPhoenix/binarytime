@@ -23,12 +23,12 @@ func FromTime(t time.Time) BinaryTime {
 		return BinaryTime{}
 	}
 
-	return FromNanos(uint64(nanos))
+	return FromNanos(nanos)
 }
 
-func FromNanos(nanos uint64) BinaryTime {
+func FromNanos(nanos int64) BinaryTime {
 	days := getDays(nanos)
-	subDays := getSubDay(nanos)
+	subDays := getSubDay(uint64(nanos))
 
 	upper := toBytes(days)
 	lower := toBytes(subDays)
@@ -62,8 +62,11 @@ func (bt BinaryTime) Value() *big.Int {
 
 const dayNs = uint64(86_400_000_000_000)
 
-func getDays(ns uint64) uint64 {
-	return ns / dayNs
+func getDays(ns int64) uint64 {
+	if ns < 0 {
+		ns = -ns
+	}
+	return uint64(ns) / dayNs
 }
 
 func getSubDay(ns uint64) uint64 {

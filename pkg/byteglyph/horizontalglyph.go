@@ -10,7 +10,7 @@ var (
 	highH  = []byte(`|\/|`)
 	barH   = []byte(`----`)
 	lowH   = []byte(`|/\|`)
-	dotH   = []byte("\n*   \n")
+	dotH   = []byte("*   ")
 )
 
 type horizontalGlyph struct {
@@ -56,9 +56,14 @@ func assembleHorizontalGlyphs(hgs []horizontalGlyph, dot int) string {
 	for i, hg := range hgs {
 		if i == dot {
 			sb.Write(dotH)
+			sb.WriteString("\n\n")
 		}
 		sb.WriteString(hg.string())
 		sb.WriteRune('\n')
+	}
+	if dot == len(hgs) {
+		sb.Write(dotH)
+		sb.WriteString("\n\n")
 	}
 	return sb.String()
 }
