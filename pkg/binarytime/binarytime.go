@@ -2,11 +2,8 @@ package binarytime
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math/big"
 	"time"
-
-	"github.com/seannyphoenix/binarytime/pkg/byteglyph"
 )
 
 type BinaryTime struct {
@@ -18,24 +15,19 @@ func Now() BinaryTime {
 }
 
 func FromTime(t time.Time) BinaryTime {
-	nanos := t.UnixNano()
-
-	// handle negative times later
-	if nanos < 0 {
-		return BinaryTime{}
-	}
-
-	return FromNanos(nanos)
+	return FromUnixNanos(t.UnixNano())
 }
 
-func FromNanos(nanos int64) BinaryTime {
+// FromUnixNanos creates a BinaryTime from a Unix timestamp in nanoseconds.
+func FromUnixNanos(nanos int64) BinaryTime {
 	days := getDays(nanos)
-	subDays := getSubDay(uint64(nanos))
+	subDays := getSubDay(nanos)
 
-	upper := toBytes(days)
-	lower := toBytes(subDays)
+	var upper, lower [8]byte
+	binary.BigEndian.PutUint64(upper[:], days)
+	binary.BigEndian.PutUint64(lower[:], subDays)
+
 	bytes := append(upper[:], lower[:]...)
-
 	bt := new(big.Int).SetBytes(bytes)
 
 	return BinaryTime{
@@ -43,84 +35,69 @@ func FromNanos(nanos int64) BinaryTime {
 	}
 }
 
+// Copy creates a copy of the BinaryTime.
+// This is useful for ensuring that the original BinaryTime is not modified.
 func (bt BinaryTime) Copy() BinaryTime {
 	return BinaryTime{
 		value: *big.NewInt(0).Set(&bt.value),
 	}
 }
 
-func (bt BinaryTime) String() string {
-	return coarse(bt)
-}
-
-func (bt BinaryTime) StringFine() string {
-	return fine(bt)
-}
-
-func (bt BinaryTime) Glyphs() string {
-	bytes := make([]byte, 16)
-	bt.value.FillBytes(bytes)
-
-	// return byteglyph.Glyphs(bytes[6:10], 2)
-	return byteglyph.Glyphs(bytes, 8)
-}
-
-func (bt BinaryTime) TimeGlyphs() string {
-	bytes := make([]byte, 16)
-	bt.value.FillBytes(bytes)
-
-	return byteglyph.Glyphs(bytes[8:10], 0)
-}
-
-func (bt BinaryTime) DateGlyphs() string {
-	bytes := make([]byte, 16)
-	bt.value.FillBytes(bytes)
-
-	return byteglyph.Glyphs(bytes[6:8], 2)
-}
-
-func (bt BinaryTime) DateTimeGlyphs() string {
-	bytes := make([]byte, 16)
-	bt.value.FillBytes(bytes)
-
-	return byteglyph.Glyphs(bytes[6:10], 2)
-}
-
+// IsZero checks if the BinaryTime is zero.
 func (bt BinaryTime) IsZero() bool {
 	return bt.value.Sign() == 0
 }
 
-func (bt BinaryTime) Value() *big.Int {
-	cp := bt.Copy()
-	return &cp.value
-}
-
+// Equals checks if two BinaryTime instances are equal.
 func (bt BinaryTime) Equals(other BinaryTime) bool {
 	return bt.value.Cmp(&other.value) == 0
 }
 
-const (
-	dayNs = uint64(86_400_000_000_000)
-	epoch = int64(1 << 32) // 2^32 days before the Unix epoch (1970-01-01T00:00:00Z), or about 11.76 million years
-)
-
-func getDays(ns int64) uint64 {
-	days := ns / int64(dayNs)
-	return uint64(days + epoch)
+// Value returns the underlying big.Int value of the BinaryTime.
+// This is acopy of the value, not a reference.
+func (bt BinaryTime) Value() big.Int {
+	return bt.value
 }
 
-func getSubDay(ns uint64) uint64 {
-	ns %= dayNs
-	d := dayNs
+const (
+	// There are 86.4 trillion nanoseconds in a day.
+	dayNs = int64(86_400_000_000_000)
 
+	// 2^32 plus 2^48 days before the Unix epoch (1970-01-01T00:00:00Z),
+	// or ~770.64 billion years + ~11.76 million years
+	epoch = int64(1<<32 + 1<<48)
+)
+
+// Because we're adding the epoch to the days, we know that the days will always be positive.
+// This means that we can safely cast the days to uint64 without worrying about negative values.
+func getDays(ns int64) uint64 {
+	days := ns / dayNs
+	days += epoch
+	if ns < 0 {
+		days -= 1
+	}
+
+	return uint64(days)
+}
+
+func getSubDay(ns int64) uint64 {
+	ns %= dayNs
+	if ns < 0 {
+		ns = (ns + dayNs) % dayNs
+	}
+
+	// Now that we've taken care of the negative case,
+	// we can safely cast ns to uint64.
+	sub := uint64(ns)
+	d := uint64(dayNs)
 	var sd uint64
 	var i int
 	for ; i < 64 && d > 1; i++ {
 		d >>= 1
 
-		v := ns / d
+		v := sub / d
 		if v == 1 {
-			ns -= d
+			sub -= d
 		}
 
 		sd <<= 1
@@ -129,30 +106,4 @@ func getSubDay(ns uint64) uint64 {
 
 	sd <<= (64 - i)
 	return sd
-}
-
-func toBytes(v uint64) [8]byte {
-	var b [8]byte
-	binary.BigEndian.PutUint64(b[:], v)
-	return b
-}
-
-func coarse(bt BinaryTime) string {
-	bytes := make([]byte, 16)
-	bt.value.FillBytes(bytes)
-
-	days := binary.BigEndian.Uint16(bytes[6:8])
-	subDays := binary.BigEndian.Uint16(bytes[8:10])
-
-	return fmt.Sprintf("%04X:%04X", days, subDays)
-}
-
-func fine(bt BinaryTime) string {
-	bytes := make([]byte, 16)
-	bt.value.FillBytes(bytes)
-
-	days := binary.BigEndian.Uint64(bytes[:8])
-	subDays := binary.BigEndian.Uint64(bytes[8:])
-
-	return fmt.Sprintf("%016X:%016X", days, subDays)
 }
