@@ -20,6 +20,10 @@ func NewF128(val int64, div uint64) (Fixed128, error) {
 	return toF128(val, div)
 }
 
+func (f128 Fixed128) Value() big.Int {
+	return f128.value
+}
+
 func toF128(val int64, div uint64) (Fixed128, error) {
 	f128 := Fixed128{divisor: div}
 
@@ -109,4 +113,27 @@ func fromF128(f128 Fixed128) (int64, uint64, error) {
 	}
 
 	return full, f128.divisor, nil
+}
+
+func (f128 Fixed128) Copy() Fixed128 {
+	return Fixed128{
+		value:   *big.NewInt(0).Set(&f128.value),
+		divisor: f128.divisor,
+	}
+}
+
+func (f128 Fixed128) Sign() int {
+	return f128.value.Sign()
+}
+
+func (f128 Fixed128) Cmp(other *Fixed128) int {
+	if f128.value.Cmp(&other.value) != 0 {
+		return f128.value.Cmp(&other.value)
+	}
+	if f128.divisor < other.divisor {
+		return -1
+	} else if f128.divisor > other.divisor {
+		return 1
+	}
+	return 0
 }
