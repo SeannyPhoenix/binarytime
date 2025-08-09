@@ -66,7 +66,7 @@ func formatTime(t time.Time) string {
 	}
 }
 
-func formatBTime(bt binarytime.BinaryTime) string {
+func formatBTime(bt binarytime.Date) string {
 	switch ops.format {
 	case "d":
 		return bt.DateGlyphs()
