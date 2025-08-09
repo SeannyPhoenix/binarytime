@@ -104,8 +104,7 @@ func fromF128(f128 Fixed128) (int64, uint64, error) {
 		lo = bits.RotateLeft64(lo, 1)
 		bit := lo & 1
 		full += int64(d * bit)
-		lo >>= 1
-		lo <<= 1
+		lo &= ^uint64(1)
 	}
 
 	if f128.value.Sign() < 0 {
