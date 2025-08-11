@@ -91,21 +91,30 @@ func FromF128(f128 Fixed128) (int64, error) {
 	return val, err
 }
 
-func fromF128(f128 Fixed128) (int64, uint64, error) {
+func hilo(f128 Fixed128) (uint64, uint64) {
 	bytes := f128.value.FillBytes(make([]byte, 16))
 	hi := binary.BigEndian.Uint64(bytes[:8])
 	lo := binary.BigEndian.Uint64(bytes[8:])
+	return hi, lo
+}
 
-	d := f128.divisor
-	full := int64(hi * d)
+func fromF128(f128 Fixed128) (int64, uint64, error) {
+	hi, lo := hilo(f128)
 
-	for lo > 0 {
-		d >>= 1
-		lo = bits.RotateLeft64(lo, 1)
-		bit := lo & 1
-		full += int64(d * bit)
-		lo &= ^uint64(1)
+	div := f128.divisor
+	shift := bits.LeadingZeros64(div)
+	div <<= shift
+
+	var part uint64
+	var i int
+	for ; i < 64 && lo > 0; i++ {
+		div >>= 1
+		bit := lo >> (63 - i) & 1
+		part += div * bit
 	}
+	part >>= shift
+
+	full := int64(hi*f128.divisor + part)
 
 	if f128.value.Sign() < 0 {
 		full = -full
