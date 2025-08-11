@@ -31,9 +31,16 @@ func toF128(val int64, div uint64) (Fixed128, error) {
 		return f128, fmt.Errorf("division by zero")
 	}
 
+	if val == math.MinInt64 {
+		return f128, fmt.Errorf("value %d is too small to represent in Fixed128", val)
+	}
+
 	neg := val < 0
+	var abs uint64
 	if neg {
-		val = -val
+		abs = uint64(-val)
+	} else {
+		abs = uint64(val)
 	}
 
 	abs := uint64(val)
