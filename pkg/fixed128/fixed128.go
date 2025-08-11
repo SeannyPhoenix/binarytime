@@ -17,25 +17,6 @@ type Fixed128 struct {
 }
 
 func NewF128(val int64, div uint64) (Fixed128, error) {
-	return toF128(val, div)
-}
-
-func (f128 Fixed128) Value() big.Int {
-	return f128.value
-}
-
-func (f128 Fixed128) String() string {
-	hi, lo := hilo(f128)
-
-	var neg rune
-	if f128.value.Sign() < 0 {
-		neg = '-'
-	}
-
-	return fmt.Sprintf("%c%X.%X", neg, hi, lo)
-}
-
-func toF128(val int64, div uint64) (Fixed128, error) {
 	var f128 Fixed128
 
 	if div == 0 {
@@ -59,11 +40,11 @@ func toF128(val int64, div uint64) (Fixed128, error) {
 
 	var out big.Int
 	out.SetUint64(hi)
-	out.Lsh(&out, 64)
 
 	var outLow big.Int
 	outLow.SetUint64(lo)
 
+	out.Lsh(&out, 64)
 	out.Add(&out, &outLow)
 
 	if neg {
@@ -72,6 +53,53 @@ func toF128(val int64, div uint64) (Fixed128, error) {
 
 	f128.value = out
 	return f128, nil
+}
+
+func (f128 Fixed128) FromF128(divisor uint64) (int64, error) {
+	var out int64
+
+	if divisor == 0 {
+		return out, fmt.Errorf("division by zero")
+	}
+
+	hi, lo := hilo(f128)
+
+	out = int64(hi * divisor)
+
+	div := divisor
+	shift := bits.LeadingZeros64(div)
+	div <<= shift
+
+	var part uint64
+	for i := 0; i < 64 && div > 0; i++ {
+		div >>= 1
+		bit := lo >> (63 - i) & 1
+		part += div * bit
+	}
+	part >>= shift
+
+	out += int64(part)
+
+	if f128.value.Sign() < 0 {
+		out = -out
+	}
+
+	return out, nil
+}
+
+func (f128 Fixed128) Value() big.Int {
+	return f128.value
+}
+
+func (f128 Fixed128) String() string {
+	hi, lo := hilo(f128)
+
+	var neg rune
+	if f128.value.Sign() < 0 {
+		neg = '-'
+	}
+
+	return fmt.Sprintf("%c%X.%X", neg, hi, lo)
 }
 
 func getF128Hi(val, div uint64) uint64 {
@@ -101,30 +129,6 @@ func getF128Lo(val, div uint64) uint64 {
 
 	out <<= (64 - i)
 	return out
-}
-
-func (f128 Fixed128) FromF128(divisor uint64) (int64, error) {
-	hi, lo := hilo(f128)
-
-	div := divisor
-	shift := bits.LeadingZeros64(div)
-	div <<= shift
-
-	var part uint64
-	for i := 0; i < 64 && div > 0; i++ {
-		div >>= 1
-		bit := lo >> (63 - i) & 1
-		part += div * bit
-	}
-	part >>= shift
-
-	full := int64(hi*divisor + part)
-
-	if f128.value.Sign() < 0 {
-		full = -full
-	}
-
-	return full, nil
 }
 
 func hilo(f128 Fixed128) (uint64, uint64) {
