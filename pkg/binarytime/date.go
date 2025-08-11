@@ -30,7 +30,7 @@ func FromUnixNanos(nanos int64) Date {
 }
 
 func (bt Date) ToTime() time.Time {
-	ns, err := fixed128.FromF128(bt.value)
+	ns, err := bt.value.FromF128(dayNs)
 	if err != nil {
 		return time.Time{}
 	}

@@ -13,8 +13,7 @@ import (
 )
 
 type Fixed128 struct {
-	value   big.Int
-	divisor uint64
+	value big.Int
 }
 
 func NewF128(val int64, div uint64) (Fixed128, error) {
@@ -37,7 +36,7 @@ func (f128 Fixed128) String() string {
 }
 
 func toF128(val int64, div uint64) (Fixed128, error) {
-	f128 := Fixed128{divisor: div}
+	var f128 Fixed128
 
 	if div == 0 {
 		return f128, fmt.Errorf("division by zero")
@@ -104,22 +103,10 @@ func getF128Lo(val, div uint64) uint64 {
 	return out
 }
 
-func FromF128(f128 Fixed128) (int64, error) {
-	val, _, err := fromF128(f128)
-	return val, err
-}
-
-func hilo(f128 Fixed128) (uint64, uint64) {
-	bytes := f128.value.FillBytes(make([]byte, 16))
-	hi := binary.BigEndian.Uint64(bytes[:8])
-	lo := binary.BigEndian.Uint64(bytes[8:])
-	return hi, lo
-}
-
-func fromF128(f128 Fixed128) (int64, uint64, error) {
+func (f128 Fixed128) FromF128(divisor uint64) (int64, error) {
 	hi, lo := hilo(f128)
 
-	div := f128.divisor
+	div := divisor
 	shift := bits.LeadingZeros64(div)
 	div <<= shift
 
@@ -131,19 +118,25 @@ func fromF128(f128 Fixed128) (int64, uint64, error) {
 	}
 	part >>= shift
 
-	full := int64(hi*f128.divisor + part)
+	full := int64(hi*divisor + part)
 
 	if f128.value.Sign() < 0 {
 		full = -full
 	}
 
-	return full, f128.divisor, nil
+	return full, nil
+}
+
+func hilo(f128 Fixed128) (uint64, uint64) {
+	bytes := f128.value.FillBytes(make([]byte, 16))
+	hi := binary.BigEndian.Uint64(bytes[:8])
+	lo := binary.BigEndian.Uint64(bytes[8:])
+	return hi, lo
 }
 
 func (f128 Fixed128) Copy() Fixed128 {
 	return Fixed128{
-		value:   *big.NewInt(0).Set(&f128.value),
-		divisor: f128.divisor,
+		value: *big.NewInt(0).Set(&f128.value),
 	}
 }
 
@@ -152,13 +145,5 @@ func (f128 Fixed128) Sign() int {
 }
 
 func (f128 Fixed128) Cmp(other *Fixed128) int {
-	if f128.value.Cmp(&other.value) != 0 {
-		return f128.value.Cmp(&other.value)
-	}
-	if f128.divisor < other.divisor {
-		return -1
-	} else if f128.divisor > other.divisor {
-		return 1
-	}
-	return 0
+	return f128.value.Cmp(&other.value)
 }
