@@ -7,6 +7,7 @@ package fixed128
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"math/big"
 	"math/bits"
 )
@@ -22,6 +23,17 @@ func NewF128(val int64, div uint64) (Fixed128, error) {
 
 func (f128 Fixed128) Value() big.Int {
 	return f128.value
+}
+
+func (f128 Fixed128) String() string {
+	hi, lo := hilo(f128)
+
+	var neg rune
+	if f128.value.Sign() < 0 {
+		neg = '-'
+	}
+
+	return fmt.Sprintf("%c%X.%X", neg, hi, lo)
 }
 
 func toF128(val int64, div uint64) (Fixed128, error) {
@@ -43,7 +55,6 @@ func toF128(val int64, div uint64) (Fixed128, error) {
 		abs = uint64(val)
 	}
 
-	abs := uint64(val)
 	hi := getF128Hi(abs, div)
 	lo := getF128Lo(abs, div)
 
@@ -113,8 +124,7 @@ func fromF128(f128 Fixed128) (int64, uint64, error) {
 	div <<= shift
 
 	var part uint64
-	var i int
-	for ; i < 64 && lo > 0; i++ {
+	for i := 0; i < 64 && div > 0; i++ {
 		div >>= 1
 		bit := lo >> (63 - i) & 1
 		part += div * bit
