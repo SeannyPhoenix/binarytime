@@ -16,27 +16,39 @@ type Fixed128 struct {
 	value big.Int
 }
 
-func NewF128(val int64, div uint64) (Fixed128, error) {
+func NewF128(x int64, y int64) (Fixed128, error) {
 	var f128 Fixed128
 
-	if div == 0 {
+	if x == math.MinInt64 {
+		return f128, fmt.Errorf("value %d is too small to represent in Fixed128", x)
+	}
+
+	if y == 0 {
 		return f128, fmt.Errorf("division by zero")
 	}
 
-	if val == math.MinInt64 {
-		return f128, fmt.Errorf("value %d is too small to represent in Fixed128", val)
+	if y == math.MinInt64 {
+		return f128, fmt.Errorf("value %d is too small to represent in Fixed128", y)
 	}
 
-	neg := val < 0
-	var abs uint64
-	if neg {
-		abs = uint64(-val)
+	negX := x < 0
+	var absX uint64
+	if negX {
+		absX = uint64(-x)
 	} else {
-		abs = uint64(val)
+		absX = uint64(x)
 	}
 
-	hi := getF128Hi(abs, div)
-	lo := getF128Lo(abs, div)
+	negY := y < 0
+	var absY uint64
+	if negY {
+		absY = uint64(-y)
+	} else {
+		absY = uint64(y)
+	}
+
+	hi := getF128Hi(absX, absY)
+	lo := getF128Lo(absX, absY)
 
 	var out big.Int
 	out.SetUint64(hi)
@@ -47,7 +59,7 @@ func NewF128(val int64, div uint64) (Fixed128, error) {
 	out.Lsh(&out, 64)
 	out.Add(&out, &outLow)
 
-	if neg {
+	if negX != negY {
 		out.Neg(&out)
 	}
 
@@ -55,18 +67,30 @@ func NewF128(val int64, div uint64) (Fixed128, error) {
 	return f128, nil
 }
 
-func (f128 Fixed128) FromF128(divisor uint64) (int64, error) {
-	var out int64
+func (f128 Fixed128) FromF128(y int64) (int64, error) {
+	var x int64
 
-	if divisor == 0 {
-		return out, fmt.Errorf("division by zero")
+	if y == 0 {
+		return x, fmt.Errorf("division by zero")
+	}
+
+	if y == math.MinInt64 {
+		return x, fmt.Errorf("value %d is too small to represent in Fixed128", y)
+	}
+
+	negY := y < 0
+	var absY uint64
+	if negY {
+		absY = uint64(-y)
+	} else {
+		absY = uint64(y)
 	}
 
 	hi, lo := hilo(f128)
 
-	out = int64(hi * divisor)
+	x = int64(hi * absY)
 
-	div := divisor
+	div := absY
 	shift := bits.LeadingZeros64(div)
 	div <<= shift
 
@@ -78,13 +102,13 @@ func (f128 Fixed128) FromF128(divisor uint64) (int64, error) {
 	}
 	part >>= shift
 
-	out += int64(part)
+	x += int64(part)
 
-	if f128.value.Sign() < 0 {
-		out = -out
+	if f128.value.Sign() < 0 != negY {
+		x = -x
 	}
 
-	return out, nil
+	return x, nil
 }
 
 func (f128 Fixed128) Value() big.Int {
