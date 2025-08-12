@@ -53,7 +53,7 @@ func (bt Date) IsZero() bool {
 
 // Equals checks if two BinaryTime instances are equal.
 func (bt Date) Equals(other Date) bool {
-	return bt.value.Cmp(&other.value) == 0
+	return bt.value.Cmp(other.value) == 0
 }
 
 // Value returns the underlying Fixed128 value of the BinaryTime.
