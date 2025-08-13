@@ -38,7 +38,6 @@ func getComponents(x, y uint64) (uint64, uint64) {
 	}
 
 	var hi, lo uint64
-
 	hi = x / y
 	part := x % y
 
@@ -81,8 +80,24 @@ func fromF128(f128 Fixed128, y int64) (int64, error) {
 	hi, lo := hilo(f128)
 
 	x = int64(hi * absY)
+	part := hydrate(lo, absY)
+	x += int64(part)
 
-	div := absY
+	if negX != negY {
+		x = -x
+	}
+
+	return x, nil
+}
+
+func hilo(f128 Fixed128) (uint64, uint64) {
+	bytes := f128.value.FillBytes(make([]byte, 16))
+	hi := binary.BigEndian.Uint64(bytes[:8])
+	lo := binary.BigEndian.Uint64(bytes[8:])
+	return hi, lo
+}
+
+func hydrate(lo, div uint64) uint64 {
 	shift := bits.LeadingZeros64(div)
 	div <<= shift
 
@@ -100,18 +115,5 @@ func fromF128(f128 Fixed128, y int64) (int64, error) {
 		part += round
 	}
 
-	x += int64(part)
-
-	if negX != negY {
-		x = -x
-	}
-
-	return x, nil
-}
-
-func hilo(f128 Fixed128) (uint64, uint64) {
-	bytes := f128.value.FillBytes(make([]byte, 16))
-	hi := binary.BigEndian.Uint64(bytes[:8])
-	lo := binary.BigEndian.Uint64(bytes[8:])
-	return hi, lo
+	return part
 }

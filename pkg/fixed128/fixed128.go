@@ -1,6 +1,6 @@
 // The fixed128 package represents a 128-bit fixed-point fractional number.
 // The top 64 bits represent the whole part, and the bottom 64 bits represent
-// the fractional part. The underlying data is stored in a big.Int with the divisor
+// the fractional part. The underlying data is stored in a big.Int.
 
 package fixed128
 
