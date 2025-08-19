@@ -16,15 +16,10 @@ var (
 	ErrInvalidFormat = errors.New("invalid format")
 )
 
-// implements fmt.Stringer
+// String implements fmt.Stringer
 func (f128 Fixed128) String() string {
 	if f128.IsZero() {
 		return "00.00"
-	}
-
-	var neg rune
-	if f128.IsNeg() {
-		neg = '-'
 	}
 
 	b := f128.bytes()
@@ -39,10 +34,24 @@ func (f128 Fixed128) String() string {
 		low--
 	}
 
-	return fmt.Sprintf("%c%0*X.%0*X", neg, (9-high)*2, b[high:9], (low-9)*2, b[9:low])
+	var out string
+	if f128.IsNeg() {
+		out = "-"
+	}
+
+	out += fmt.Sprintf("%0*X.%0*X", (9-high)*2, b[high:9], (low-9)*2, b[9:low])
+	return out
 }
 
-// implements encoding.BinaryMarshaler
+func Parse(s string) (Fixed128, error) {
+	var f128 Fixed128
+	if err := f128.UnmarshalText([]byte(s)); err != nil {
+		return Fixed128{}, err
+	}
+	return f128, nil
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (f128 Fixed128) MarshalBinary() ([]byte, error) {
 	return f128.bytes(), nil
 }
@@ -58,7 +67,7 @@ func (f128 Fixed128) bytes() []byte {
 	return b[:]
 }
 
-// implements encoding.BinaryUnmarshaler
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
 func (f128 *Fixed128) UnmarshalBinary(bin []byte) error {
 	if len(bin) != 17 {
 		return fmt.Errorf("%w: got %d", ErrInvalidLength, len(bin))
@@ -89,11 +98,12 @@ func (f128 *Fixed128) UnmarshalText(text []byte) error {
 	if len(s) == 0 {
 		return fmt.Errorf("%w: empty string", ErrInvalidFormat)
 	}
+	if len(s) > 34 {
+		return fmt.Errorf("%w: too long", ErrInvalidFormat)
+	}
 
-	// Optional leading minus
-	neg := false
-	if s[0] == '-' {
-		neg = true
+	neg := s[0] == '-'
+	if neg {
 		s = s[1:]
 	}
 
@@ -105,22 +115,15 @@ func (f128 *Fixed128) UnmarshalText(text []byte) error {
 	// Parse hex big-endian whole+frac into 16 bytes
 	hiStr, loStr := parts[0], parts[1]
 
-	// Pad to full byte-lengths
-	if len(hiStr)%2 == 1 {
-		hiStr = "0" + hiStr
-	}
-	if len(loStr)%2 == 1 {
-		loStr = "0" + loStr
-	}
-
 	hiBytes, err := hex.DecodeString(hiStr)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrInvalidFormat, err)
 	}
 	loBytes, err := hex.DecodeString(loStr)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrInvalidFormat, err)
 	}
+
 	if len(hiBytes) > 8 || len(loBytes) > 8 {
 		return fmt.Errorf("%w: too wide", ErrInvalidFormat)
 	}
