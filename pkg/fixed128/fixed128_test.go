@@ -1,6 +1,7 @@
 package fixed128
 
 import (
+	"math"
 	"testing"
 )
 
@@ -36,14 +37,14 @@ func FuzzFixed128(t *testing.F) {
 		}
 
 		if got != dividend {
-			t.Errorf("unexpected result: got %d, want %d", got, dividend)
+			t.Errorf("unexpected result: dividend %d, divisor %d, got %d", dividend, divisor, got)
 		}
 	})
 }
 
 func BenchmarkNewF128(b *testing.B) {
 	for b.Loop() {
-		_, err := NewF128(1234567890123456789, 987654321)
+		_, err := NewF128(int64(math.MaxInt64-b.N), int64(b.N+1))
 		if err != nil {
 			b.Fatalf("failed to create Fixed128: %v", err)
 		}
@@ -51,13 +52,13 @@ func BenchmarkNewF128(b *testing.B) {
 }
 
 func BenchmarkFrom128(b *testing.B) {
-	f128, err := NewF128(1234567890123456789, 987654321)
+	f128, err := NewF128(int64(b.N), int64(math.MaxInt64-b.N))
 	if err != nil {
 		b.Fatalf("failed to create Fixed128: %v", err)
 	}
 
 	for b.Loop() {
-		_, err := f128.FromF128(987654321)
+		_, err := f128.FromF128(int64(b.N + 1))
 		if err != nil {
 			b.Fatalf("failed to convert from Fixed128: %v", err)
 		}
