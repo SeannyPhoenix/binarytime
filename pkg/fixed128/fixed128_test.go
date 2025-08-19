@@ -26,12 +26,12 @@ func FuzzFixed128(t *testing.F) {
 			t.Skip("skipping test case with division by zero")
 		}
 
-		f128, err := NewF128(dividend, divisor)
+		f128, err := New(dividend, divisor)
 		if err != nil {
 			t.Fatalf("failed to create Fixed128: %v", err)
 		}
 
-		got, err := f128.FromF128(divisor)
+		got, err := f128.MulInt64(divisor)
 		if err != nil {
 			t.Fatalf("failed to convert from Fixed128: %v", err)
 		}
@@ -44,7 +44,7 @@ func FuzzFixed128(t *testing.F) {
 
 func BenchmarkNewF128(b *testing.B) {
 	for b.Loop() {
-		_, err := NewF128(int64(math.MaxInt64-b.N), int64(b.N+1))
+		_, err := New(int64(math.MaxInt64-b.N), int64(b.N+1))
 		if err != nil {
 			b.Fatalf("failed to create Fixed128: %v", err)
 		}
@@ -52,13 +52,13 @@ func BenchmarkNewF128(b *testing.B) {
 }
 
 func BenchmarkFrom128(b *testing.B) {
-	f128, err := NewF128(int64(b.N), int64(math.MaxInt64-b.N))
+	f128, err := New(int64(b.N), int64(math.MaxInt64-b.N))
 	if err != nil {
 		b.Fatalf("failed to create Fixed128: %v", err)
 	}
 
 	for b.Loop() {
-		_, err := f128.FromF128(int64(b.N + 1))
+		_, err := f128.MulInt64(int64(b.N + 1))
 		if err != nil {
 			b.Fatalf("failed to convert from Fixed128: %v", err)
 		}

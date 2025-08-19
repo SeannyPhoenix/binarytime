@@ -21,7 +21,7 @@ func DateFromTime(t time.Time) Date {
 
 // DateFromUnixNanos creates a BinaryTime from a Unix timestamp in nanoseconds.
 func DateFromUnixNanos(nanos int64) Date {
-	value, err := fixed128.NewF128(nanos, dayNs)
+	value, err := fixed128.New(nanos, dayNs)
 	if err != nil {
 		return Date{}
 	}
@@ -30,7 +30,7 @@ func DateFromUnixNanos(nanos int64) Date {
 }
 
 func (bt Date) ToTime() time.Time {
-	ns, err := bt.value.FromF128(dayNs)
+	ns, err := bt.value.MulInt64(dayNs)
 	if err != nil {
 		return time.Time{}
 	}

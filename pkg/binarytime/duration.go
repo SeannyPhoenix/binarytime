@@ -15,7 +15,7 @@ func FromDuration(d time.Duration) Duration {
 }
 
 func FromNanoseconds(nanos int64) Duration {
-	v, err := fixed128.NewF128(nanos, dayNs)
+	v, err := fixed128.New(nanos, dayNs)
 	if err != nil {
 		return Duration{}
 	}
