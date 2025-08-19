@@ -7,6 +7,8 @@ import (
 	"github.com/seannyphoenix/binarytime/pkg/byteglyph"
 )
 
+const mask16 = 1<<16 - 1
+
 func (bt Date) String() string {
 	return coarse(bt)
 }
@@ -44,12 +46,13 @@ func (bt Date) DateTimeGlyphs() string {
 }
 
 func coarse(bt Date) string {
-	bytes := bt.Bytes()
+	hi, lo := bt.Fixed128().HiLo()
 
-	days := binary.BigEndian.Uint16(bytes[6:8])
-	subDays := binary.BigEndian.Uint16(bytes[8:10])
+	hi &= mask16
+	lo >>= 48
+	lo &= mask16
 
-	return fmt.Sprintf("%04X:%04X", days, subDays)
+	return fmt.Sprintf("%04X.%04X", hi, lo)
 }
 
 func fine(bt Date) string {

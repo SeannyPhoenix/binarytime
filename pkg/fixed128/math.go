@@ -3,7 +3,7 @@ package fixed128
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
+	"math"
 	"math/bits"
 )
 
@@ -14,14 +14,11 @@ func toF128(x, y int64) (Fixed128, error) {
 
 	negX, absX := normalize(x)
 	negY, absY := normalize(y)
+	neg := negX != negY
 
 	hi, lo := getComponents(absX, absY)
-	f128 := assemble(hi, lo)
 
-	if negX != negY {
-		f128.value.Neg(&f128.value)
-	}
-
+	f128 := assemble(neg, hi, lo)
 	return f128, nil
 }
 
@@ -34,7 +31,7 @@ func normalize(v int64) (bool, uint64) {
 
 func getComponents(x, y uint64) (uint64, uint64) {
 	if y == 0 {
-		panic(fmt.Sprintf("division by zero in getComponents: val %d, div %d", x, y))
+		panic(fmt.Sprintf("division by zero in getComponents: x %d, y %d", x, y))
 	}
 
 	var hi, lo uint64
@@ -59,29 +56,50 @@ func getComponents(x, y uint64) (uint64, uint64) {
 	return hi, lo
 }
 
-func assemble(hi, lo uint64) Fixed128 {
+func assemble(neg bool, hi, lo uint64) Fixed128 {
 	var f128 Fixed128
-	f128.value.SetUint64(hi)
-	f128.value.Lsh(&f128.value, 64)
-	f128.value.Add(&f128.value, big.NewInt(0).SetUint64(lo))
+
+	var buf [16]byte
+	binary.BigEndian.PutUint64(buf[:8], hi)
+	binary.BigEndian.PutUint64(buf[8:], lo)
+	f128.value.SetBytes(buf[:])
+
+	if neg {
+		f128.value.Neg(&f128.value)
+	}
+
 	return f128
 }
 
-func fromF128(f128 Fixed128, y int64) (int64, error) {
-	var x int64
+func disassemble(f128 Fixed128) (bool, uint64, uint64) {
+	var buf [16]byte
+	f128.value.FillBytes(buf[:])
+	hi := binary.BigEndian.Uint64(buf[:8])
+	lo := binary.BigEndian.Uint64(buf[8:])
 
+	neg := f128.IsNeg()
+
+	return neg, hi, lo
+}
+
+func fromF128(f128 Fixed128, y int64) (int64, error) {
 	if y == 0 {
-		return x, fmt.Errorf("division by zero")
+		return 0, fmt.Errorf("division by zero")
 	}
 
-	negX := f128.value.Sign() < 0
+	negX, hi, lo := disassemble(f128)
 	negY, absY := normalize(y)
 
-	hi, lo := hilo(f128)
+	whole, err := multiply64(hi, absY)
+	if err != nil {
+		return 0, err
+	}
 
-	x = int64(hi * absY)
 	part := hydrate(lo, absY)
-	x += int64(part)
+	x, err := add64(whole, part)
+	if err != nil {
+		return 0, fmt.Errorf("addition overflow: %d + %d", whole, part)
+	}
 
 	if negX != negY {
 		x = -x
@@ -90,11 +108,21 @@ func fromF128(f128 Fixed128, y int64) (int64, error) {
 	return x, nil
 }
 
-func hilo(f128 Fixed128) (uint64, uint64) {
-	bytes := f128.value.FillBytes(make([]byte, 16))
-	hi := binary.BigEndian.Uint64(bytes[:8])
-	lo := binary.BigEndian.Uint64(bytes[8:])
-	return hi, lo
+func multiply64(a, b uint64) (uint64, error) {
+	hi, lo := bits.Mul64(a, b)
+	if hi > 0 {
+		return 0, fmt.Errorf("multiplication overflow: %d * %d", a, b)
+	}
+
+	return lo, nil
+}
+
+func add64(a, b uint64) (int64, error) {
+	sum, carry := bits.Add64(a, b, 0)
+	if sum > math.MaxInt64 || carry > 0 {
+		return 0, fmt.Errorf("addition overflow: %d + %d", a, b)
+	}
+	return int64(sum), nil
 }
 
 func hydrate(lo, div uint64) uint64 {
@@ -108,12 +136,18 @@ func hydrate(lo, div uint64) uint64 {
 		part += div * bit
 	}
 
-	if shift > 0 {
-		part >>= shift - 1
-		round := part & 1
-		part >>= 1
-		part += round
+	part = round(shift, part)
+	return part
+}
+
+func round(shift int, part uint64) uint64 {
+	if shift == 0 {
+		return part
 	}
 
+	part >>= shift - 1
+	bit := part & 1
+	part >>= 1
+	part += bit
 	return part
 }
