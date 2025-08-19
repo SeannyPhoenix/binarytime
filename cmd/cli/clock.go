@@ -36,7 +36,7 @@ func runClock() {
 				updated = true
 			}
 
-			bt := binarytime.FromTime(t)
+			bt := binarytime.DateFromTime(t)
 			btStr := formatBTime(bt)
 			if btStr != currBTime {
 				currBTime = btStr

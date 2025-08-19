@@ -12,15 +12,15 @@ type Date struct {
 }
 
 func Now() Date {
-	return FromTime(time.Now())
+	return DateFromTime(time.Now())
 }
 
-func FromTime(t time.Time) Date {
-	return FromUnixNanos(t.UnixNano())
+func DateFromTime(t time.Time) Date {
+	return DateFromUnixNanos(t.UnixNano())
 }
 
-// FromUnixNanos creates a BinaryTime from a Unix timestamp in nanoseconds.
-func FromUnixNanos(nanos int64) Date {
+// DateFromUnixNanos creates a BinaryTime from a Unix timestamp in nanoseconds.
+func DateFromUnixNanos(nanos int64) Date {
 	value, err := fixed128.NewF128(nanos, dayNs)
 	if err != nil {
 		return Date{}
