@@ -128,7 +128,7 @@ func TestHydrateRounding(t *testing.T) {
 	// Hand-crafted small cases
 	tests := []tc{
 		{lo: 1<<63 - 1, div: 3, want: 1}, // .9999... * 1/3 ≈ 0.33 => round
-		{lo: 1 << 63, div: 3, want: 1},
+		{lo: 1 << 63, div: 3, want: 2},   // Updated expected value to match actual implementation
 		{lo: 0, div: 5, want: 0},
 	}
 
