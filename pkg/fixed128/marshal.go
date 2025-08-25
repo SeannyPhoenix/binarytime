@@ -34,13 +34,15 @@ func (f128 Fixed128) String() string {
 		low--
 	}
 
-	var out string
+	s := strings.Builder{}
 	if f128.IsNeg() {
-		out = "-"
+		s.WriteRune('-')
 	}
+	s.WriteString(hex.EncodeToString(b[high:9]))
+	s.WriteRune('.')
+	s.WriteString(hex.EncodeToString(b[9:low]))
 
-	out += fmt.Sprintf("%0*X.%0*X", (9-high)*2, b[high:9], (low-9)*2, b[9:low])
-	return out
+	return s.String()
 }
 
 func Parse(s string) (Fixed128, error) {
