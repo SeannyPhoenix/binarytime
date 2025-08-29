@@ -1,6 +1,7 @@
 package fixed128
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -34,15 +35,35 @@ func (f128 Fixed128) String() string {
 		low--
 	}
 
-	s := strings.Builder{}
-	if f128.IsNeg() {
+	out, err := stringWithPrecision(b, high, low)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+func (f128 Fixed128) StringWithPrecision(high int, low int) (string, error) {
+	return stringWithPrecision(f128.bytes(), high, low)
+}
+
+func stringWithPrecision(b []byte, high int, low int) (string, error) {
+	if len(b) != 17 {
+		return "", fmt.Errorf("invalid length: %d", len(b))
+	}
+	if high >= 9 || low <= 9 {
+		return "", fmt.Errorf("invalid precision: %d, %d", high, low)
+	}
+
+	var s strings.Builder
+	if b[0] == 1 {
 		s.WriteRune('-')
 	}
 	s.WriteString(hex.EncodeToString(b[high:9]))
 	s.WriteRune('.')
 	s.WriteString(hex.EncodeToString(b[9:low]))
 
-	return s.String()
+	return s.String(), nil
 }
 
 func Parse(s string) (Fixed128, error) {
@@ -53,20 +74,25 @@ func Parse(s string) (Fixed128, error) {
 	return f128, nil
 }
 
+func (f128 Fixed128) Base64() string {
+	return base64.StdEncoding.EncodeToString(f128.bytes())
+}
+
+func ParseBase64(s string) (Fixed128, error) {
+	var f128 Fixed128
+	data, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return f128, fmt.Errorf("parse base64: %w", err)
+	}
+	if err := f128.UnmarshalBinary(data); err != nil {
+		return f128, fmt.Errorf("parse base64: %w", err)
+	}
+	return f128, nil
+}
+
 // MarshalBinary implements encoding.BinaryMarshaler
 func (f128 Fixed128) MarshalBinary() ([]byte, error) {
 	return f128.bytes(), nil
-}
-
-func (f128 Fixed128) bytes() []byte {
-	var b [17]byte
-	f128.value.FillBytes(b[1:17])
-
-	if f128.IsNeg() {
-		b[signIndex] = 1
-	}
-
-	return b[:]
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
@@ -137,4 +163,15 @@ func (f128 *Fixed128) UnmarshalText(text []byte) error {
 		buf[signIndex] = 1
 	}
 	return f128.UnmarshalBinary(buf[:])
+}
+
+func (f128 Fixed128) bytes() []byte {
+	var b [17]byte
+	f128.value.FillBytes(b[1:17])
+
+	if f128.IsNeg() {
+		b[signIndex] = 1
+	}
+
+	return b[:]
 }

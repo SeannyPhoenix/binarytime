@@ -29,8 +29,8 @@ func DateFromUnixNanos(nanos int64) Date {
 	return Date{value: value}
 }
 
-func (bt Date) ToTime() time.Time {
-	ns, err := bt.value.MulInt64(dayNs)
+func (d Date) ToTime() time.Time {
+	ns, err := d.value.MulInt64(dayNs)
 	if err != nil {
 		return time.Time{}
 	}
@@ -38,38 +38,42 @@ func (bt Date) ToTime() time.Time {
 	return time.Unix(0, ns)
 }
 
+func (d Date) Base64() string {
+	return d.value.Base64()
+}
+
 // Copy creates a copy of the BinaryTime.
 // This is useful for ensuring that the original BinaryTime is not modified.
-func (bt Date) Copy() Date {
+func (d Date) Copy() Date {
 	return Date{
-		value: bt.value.Copy(),
+		value: d.value.Copy(),
 	}
 }
 
 // IsZero checks if the BinaryTime is zero.
-func (bt Date) IsZero() bool {
-	return bt.value.Sign() == 0
+func (d Date) IsZero() bool {
+	return d.value.Sign() == 0
 }
 
 // Equals checks if two BinaryTime instances are equal.
-func (bt Date) Equals(other Date) bool {
-	return bt.value.Cmp(other.value) == 0
+func (d Date) Equals(other Date) bool {
+	return d.value.Cmp(other.value) == 0
 }
 
 // Value returns the underlying Fixed128 value of the BinaryTime.
 // This is a copy of the value, not a reference.
-func (bt Date) Fixed128() fixed128.Fixed128 {
-	f128 := bt.value
+func (d Date) Fixed128() fixed128.Fixed128 {
+	f128 := d.value
 	return f128
 }
 
-func (bt Date) BigInt() big.Int {
-	return bt.value.Value()
+func (d Date) BigInt() big.Int {
+	return d.value.Value()
 }
 
-func (bt Date) Bytes() []byte {
+func (d Date) Bytes() []byte {
 	bytes := make([]byte, 16)
-	bi := bt.BigInt()
+	bi := d.BigInt()
 	bi.FillBytes(bytes[:])
 	return bytes
 }
