@@ -11,10 +11,17 @@ import (
 )
 
 func main() {
-	// a()
-	// b()
-	c()
-	d()
+	// funcs["a"]()
+	// funcs["b"]()
+	funcs["c"]()
+	funcs["d"]()
+}
+
+var funcs = map[string]func(){
+	"a": a,
+	"b": b,
+	"c": c,
+	"d": d,
 }
 
 func d() {

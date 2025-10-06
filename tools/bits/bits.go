@@ -6,7 +6,14 @@ import (
 )
 
 func main() {
-	d()
+	funcs["d"]()
+}
+
+var funcs = map[string]func(){
+	"a": a,
+	"b": b,
+	"c": c,
+	"d": d,
 }
 
 func d() {

@@ -3,8 +3,12 @@ package main
 import "fmt"
 
 func main() {
-	// a()
-	b()
+	funcs["b"]()
+}
+
+var funcs = map[string]func(){
+	"a": a,
+	"b": b,
 }
 
 func b() {
@@ -14,8 +18,8 @@ func b() {
 
 func a() {
 	b := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
-	fmt.Println(b[1:9])
-	fmt.Println(b[9:17])
+	fmt.Println(string(b[1:9]))
+	fmt.Println(string(b[9:17]))
 
 	b2 := []byte{0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0}
 
@@ -37,6 +41,6 @@ func a() {
 		low--
 	}
 
-	fmt.Println(b2[high:9])
-	fmt.Println(b2[9:low])
+	fmt.Println(string(b2[high:9]))
+	fmt.Println(string(b2[9:low]))
 }
