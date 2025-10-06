@@ -4,8 +4,6 @@ import (
 	"github.com/seannyphoenix/binarytime/pkg/byteglyph"
 )
 
-const mask16 = 1<<16 - 1
-
 func (d Date) String() string {
 	return coarse(d)
 }
