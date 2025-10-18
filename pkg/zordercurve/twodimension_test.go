@@ -6,8 +6,8 @@ import (
 
 func FuzzXYToValToXY(f *testing.F) {
 	tt := []struct {
-		x uint32
-		y uint32
+		x uint64
+		y uint64
 	}{
 		{3, 4},
 		{7, 5},
@@ -20,9 +20,9 @@ func FuzzXYToValToXY(f *testing.F) {
 		f.Add(tc.x, tc.y)
 	}
 
-	f.Fuzz(func(t *testing.T, x, y uint32) {
-		v := GetValueFromXY(x, y)
-		cx, cy := GetXYFromValue(v)
+	f.Fuzz(func(t *testing.T, x, y uint64) {
+		v := TwoDimension.GetValue(x, y)
+		cx, cy := TwoDimension.GetCoords(v)
 		if cx != x || cy != y {
 			t.Fatalf("result %d, %d does not equal given %d, %d", cx, cy, x, y)
 		}
@@ -37,8 +37,8 @@ func FuzzValToXYToVal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, v uint64) {
-		x, y := GetXYFromValue(v)
-		cv := GetValueFromXY(x, y)
+		x, y := TwoDimension.GetCoords(v)
+		cv := TwoDimension.GetValue(x, y)
 		if cv != v {
 			t.Fatalf("result %d does not equal given %d", cv, v)
 		}
