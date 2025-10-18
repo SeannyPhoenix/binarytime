@@ -5,11 +5,23 @@ import (
 )
 
 func (d Date) String() string {
-	return coarse(d)
+	return d.Hex()
 }
 
 func (d Date) StringFine() string {
+	return d.HexFine()
+}
+
+func (d Date) Hex() string {
+	return coarse(d)
+}
+
+func (d Date) HexFine() string {
 	return fine(d)
+}
+
+func (d Date) Base64() string {
+	return d.value.Base64()
 }
 
 // Glyphs returns a string representation of the BinaryTime using byteglyphs.

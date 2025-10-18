@@ -29,17 +29,13 @@ func DateFromUnixNanos(nanos int64) Date {
 	return Date{value: value}
 }
 
-func (d Date) ToTime() time.Time {
-	ns, err := d.value.MulInt64(dayNs)
-	if err != nil {
-		return time.Time{}
-	}
-
-	return time.Unix(0, ns)
+func (d Date) Time() time.Time {
+	return time.Unix(0, d.UnixNano())
 }
 
-func (d Date) Base64() string {
-	return d.value.Base64()
+func (d Date) UnixNano() int64 {
+	ns, _ := d.value.MulInt64(dayNs)
+	return ns
 }
 
 // Copy creates a copy of the BinaryTime.
