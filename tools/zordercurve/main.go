@@ -8,8 +8,8 @@ import (
 
 func main() {
 	toRun := []string{
-		// "a",
-		"b",
+		"a",
+		// "b",
 	}
 
 	for _, k := range toRun {
@@ -21,14 +21,14 @@ func main() {
 
 var funcs = map[string]func(){
 	"a": func() {
-		fmt.Println(zordercurve.GetValueFromXY(7, 5))
-		fmt.Println(zordercurve.GetXYFromValue(0x99))
+		fmt.Println(zordercurve.TwoDimension.GetValue(5, 0xc))
+		fmt.Println(zordercurve.TwoDimension.GetCoords(0x99))
 	},
 
 	"b": func() {
-		for x := uint32(0); x < 16; x++ {
-			c := uint32(1 << (2 * x))
-			v := zordercurve.GetValueFromXY(c, 0)
+		for x := uint64(0); x < 16; x++ {
+			c := uint64(1) << (2 * x)
+			v := zordercurve.TwoDimension.GetValue(c, 0)
 			s := uint64(c) * uint64(c)
 			fmt.Printf("%02d, %10d: %20d = %20d %064b\n", x, c, v, s, v)
 		}

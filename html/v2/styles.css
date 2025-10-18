@@ -1,0 +1,38 @@
+:root {
+  --base-width: 4rem;
+}
+
+.grid-unit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  font-family: 'Courier New', Courier, monospace;
+
+  border-style: solid;
+  border-width: 1px;
+  border-color: lightgray;
+
+  height: var(--base-width);
+  width: var(--base-width);
+}
+
+.grid-box {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+
+  border-style: solid;
+  border-width: 1px;
+  border-color: lightgray;
+
+  .level-1 {
+    --size: calc(var(var(--base-width)) + 6)
+    height: var(var(--size));
+    width: calc(var(--size))
+  }
+
+  .level-2 {
+    --size: calc(vaar(var(--base-width)) + )
+  }
+}

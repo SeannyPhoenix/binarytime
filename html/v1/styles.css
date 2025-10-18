@@ -1,0 +1,119 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Courier New', monospace;
+  background-color: #1a1a1a;
+  color: #00ff00;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #00ff00;
+}
+
+.grid-level {
+  margin-bottom: 40px;
+  padding: 20px;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background-color: #2a2a2a;
+}
+
+/* Base hex box styling */
+.hex-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #00ff00;
+  background-color: #000;
+  color: #00ff00;
+  font-size: 14px;
+  font-weight: bold;
+  min-width: 60px;
+  min-height: 60px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  .completed {
+    background-color: #003300;
+    color: #00cc00;
+    text-decoration: line-through;
+  }
+}
+
+.hex-box:hover {
+  background-color: #003300;
+  box-shadow: 0 0 10px #00ff00;
+}
+
+/* Level 1: 2x2 grid */
+#level-1 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  max-width: 140px;
+  margin: 0 auto;
+}
+
+/* Level 2: 4x4 grid */
+#level-2 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  max-width: 260px;
+  margin: 0 auto;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .hex-box {
+    min-width: 50px;
+    min-height: 50px;
+    font-size: 12px;
+  }
+
+  #level-2 {
+    max-width: 220px;
+  }
+}
+
+/* Level 3: 8x8 grid (256 boxes) */
+#level-3 {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 1px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+#level-3 .hex-box {
+  min-width: 50px;
+  min-height: 50px;
+  font-size: 10px;
+}
+
+/* Level 4: 16x16 grid (65536 boxes) */
+#level-4 {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 1px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+#level-4 .hex-box {
+  min-width: 35px;
+  min-height: 35px;
+  font-size: 8px;
+}
