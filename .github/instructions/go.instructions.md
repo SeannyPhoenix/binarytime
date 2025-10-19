@@ -1,3 +1,6 @@
+---
+applyTo: "**/*.go,go.mod,go.sum,Makefile,cmd/**,pkg/**,internal/**,tools/**"
+---
 # Go Instructions for binarytime
 
 ## Project Structure

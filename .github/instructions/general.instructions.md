@@ -1,3 +1,6 @@
+---
+applyTo: "**"
+---
 # GitHub Copilot Instructions for binarytime
 
 ## Project Overview
@@ -11,10 +14,10 @@ This repository contains both Go and TypeScript/NPM implementations of the `bina
 ## Technology-Specific Instructions
 
 ### For TypeScript/NPM Development
-See: [`.copilot-instructions-npm.md`](./.copilot-instructions-npm.md)
+See: [`npm.instructions.md`](./npm.instructions.md)
 
 ### For Go Development  
-See: [`.copilot-instructions-go.md`](./.copilot-instructions-go.md)
+See: [`go.instructions.md`](./go.instructions.md)
 
 ## General Development Guidelines
 - **Incremental Development**: Don't try to do everything at once

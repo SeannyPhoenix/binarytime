@@ -1,3 +1,6 @@
+---
+applyTo: "package.json,eslint.config.js,jest.config.cjs,tsconfig.json,src/**,**/*.{ts,tsx,js,jsx,md}"
+---
 # NPM/TypeScript Instructions for @seannyphoenix/binarytime
 
 ## Package Configuration
@@ -44,10 +47,15 @@
 ```
 src/
 ├── __tests__/          # Jest test files
+│   ├── BinaryDate.test.ts
+│   ├── BinaryDuration.test.ts
+│   ├── Fixed128.test.ts
+│   └── Fixed128-multiplication.test.ts
 ├── lib/                # Core library implementations
-│   ├── fixed128.ts     # 128-bit arithmetic
-│   ├── binary-date.ts  # Date functionality
-│   └── binary-duration.ts # Duration functionality
+│   ├── Fixed128.ts     # 128-bit arithmetic
+│   ├── BinaryDate.ts   # Date functionality
+│   ├── BinaryDuration.ts # Duration functionality
+│   └── constants.ts    # Shared constants
 └── index.ts            # Main export file
 ```
 
