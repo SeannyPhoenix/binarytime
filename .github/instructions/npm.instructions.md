@@ -66,10 +66,11 @@ src/
 - Group related tests in describe blocks
 
 ## Documentation Requirements
-- Keep `docs/typescript-init.md` updated with process and decisions
-- Use JSDoc for all public APIs
+- Keep `docs/typescript/` documentation updated with process and decisions
+- Use JSDoc for all public APIs  
 - Include usage examples in documentation
 - Document any breaking changes from Go version
+- Update development log for major milestones
 
 ## Project Status
 - ✅ Phase 1: NPM package setup and tooling configuration
