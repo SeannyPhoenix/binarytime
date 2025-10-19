@@ -1,0 +1,56 @@
+{
+  "name": "@seannyphoenix/binarytime",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "High-precision binary time calculations using 128-bit fixed-point arithmetic",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --outfile=dist/index.js --format=cjs --platform=node && esbuild src/index.ts --bundle --outfile=dist/index.esm.js --format=esm && tsc --emitDeclarationOnly --outDir dist",
+    "dev": "esbuild src/index.ts --bundle --outfile=dist/index.js --format=cjs --platform=node --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "clean": "rm -rf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SeannyPhoenix/binarytime.git"
+  },
+  "keywords": [
+    "time",
+    "binary",
+    "precision",
+    "timestamp",
+    "fixed-point",
+    "arithmetic",
+    "bigint"
+  ],
+  "author": "SeannyPhoenix",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SeannyPhoenix/binarytime/issues"
+  },
+  "homepage": "https://github.com/SeannyPhoenix/binarytime#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.8.1",
+    "@typescript-eslint/eslint-plugin": "^8.46.1",
+    "@typescript-eslint/parser": "^8.46.1",
+    "esbuild": "^0.25.11",
+    "eslint": "^9.38.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.1"
+  }
+}
