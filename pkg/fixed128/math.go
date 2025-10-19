@@ -83,8 +83,9 @@ func disassemble(f128 Fixed128) (bool, uint64, uint64) {
 }
 
 func mulInt64(f128 Fixed128, y int64) (int64, error) {
+	// Short-circuit optimization for zero
 	if y == 0 {
-		return 0, fmt.Errorf("division by zero")
+		return 0, nil
 	}
 
 	negX, hi, lo := disassemble(f128)
