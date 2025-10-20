@@ -314,6 +314,214 @@ export class Fixed128 {
   }
 
   /**
+   * Get hex string representation with automatic precision
+   * Similar to Go's String() method - shows minimal precision needed
+   */
+  toHexString(): string {
+    if (this.isZero()) {
+      return '00.00';
+    }
+
+    const bytes = this.bytesWithSign();
+
+    // Find the first non-zero byte in the high part (skip sign byte)
+    let high = 1;
+    for (high = 1; high < 9 && bytes[high] === 0; high++) {
+      // Continue until we find non-zero byte
+    }
+
+    // Find the last non-zero byte in the low part
+    let low = 17;
+    for (low = 17; low > 9 && bytes[low - 1] === 0; low--) {
+      // Continue until we find non-zero byte
+    }
+
+    // Ensure we have at least minimal precision
+    if (high >= 9) high = 8;
+    if (low <= 9) low = 10;
+
+    return this.toHexStringWithPrecision(high, low);
+  }  /**
+   * Get hex string representation with specified precision
+   * @param high - starting byte index for high part (1-8)
+   * @param low - ending byte index for low part (10-17)
+   */
+  toHexStringWithPrecision(high: number, low: number): string {
+    const bytes = this.bytesWithSign();
+
+    if (high >= 9 || low <= 9) {
+      throw new Error(`Invalid precision: high=${high}, low=${low}`);
+    }
+
+    let result = '';
+
+    // Add negative sign if needed
+    if (bytes[0] === 1) {
+      result += '-';
+    }
+
+    // High part (whole number)
+    const highBytes = bytes.slice(high, 9);
+    result += this.bytesToHex(highBytes);
+
+    // Decimal point
+    result += '.';
+
+    // Low part (fractional)
+    const lowBytes = bytes.slice(9, low);
+    result += this.bytesToHex(lowBytes);
+
+    return result;
+  }
+
+  /**
+   * Get base64 string representation
+   */
+  toBase64(): string {
+    const bytes = this.bytesWithSign();
+    return btoa(String.fromCharCode(...bytes));
+  }
+
+  /**
+   * Create Fixed128 from base64 string
+   */
+  static fromBase64(base64: string): Fixed128 {
+    try {
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return Fixed128.fromBytesWithSign(bytes);
+    } catch (error) {
+      throw new Error(`Invalid base64 string: ${error}`);
+    }
+  }
+
+  /**
+   * Parse Fixed128 from hex string (e.g., "1A2B.3C4D" or "-1A2B.3C4D")
+   */
+  static fromHexString(hexStr: string): Fixed128 {
+    if (!hexStr || hexStr.length === 0) {
+      throw new Error('Empty hex string');
+    }
+
+    let str = hexStr.trim();
+    const isNegative = str.startsWith('-');
+    if (isNegative) {
+      str = str.slice(1);
+    }
+
+    const parts = str.split('.');
+    if (parts.length !== 2) {
+      throw new Error('Expected format: "HI.LO"');
+    }
+
+    const [hiStr, loStr] = parts as [string, string];
+
+    // Convert hex strings to bytes
+    const hiBytes = Fixed128.hexToBytes(hiStr);
+    const loBytes = Fixed128.hexToBytes(loStr);
+
+    if (hiBytes.length > 8 || loBytes.length > 8) {
+      throw new Error('Hex string too wide');
+    }
+
+    // Create 17-byte array (1 sign + 16 data bytes)
+    const bytes = new Uint8Array(17);
+
+    // Copy high bytes to positions 1-8 (right-aligned)
+    bytes.set(hiBytes, 9 - hiBytes.length);
+
+    // Copy low bytes to positions 9-16 (left-aligned)
+    bytes.set(loBytes, 9);
+
+    // Set sign
+    if (isNegative) {
+      bytes[0] = 1;
+    }
+
+    return Fixed128.fromBytesWithSign(bytes);
+  }
+
+  /**
+   * Get bytes with sign byte (17 bytes total: 1 sign + 16 data)
+   * Compatible with Go implementation
+   */
+  private bytesWithSign(): Uint8Array {
+    const result = new Uint8Array(17);
+
+    // For positive numbers, just use the value directly
+    // For negative numbers, store the absolute value and set sign byte
+    const isNegative = this.isNeg();
+    const absValue = isNegative ? -this.value : this.value;
+
+    // Set sign byte
+    result[0] = isNegative ? 1 : 0;
+
+    // Convert absolute value to bytes (big-endian)
+    let value = absValue;
+    for (let i = 16; i >= 1; i--) {
+      result[i] = Number(value & 0xffn);
+      value = value >> 8n;
+    }
+
+    return result;
+  }
+
+  /**
+   * Create Fixed128 from bytes with sign (17 bytes: 1 sign + 16 data)
+   */
+  static fromBytesWithSign(bytes: Uint8Array): Fixed128 {
+    if (bytes.length !== 17) {
+      throw new Error(`Invalid length: expected 17, got ${bytes.length}`);
+    }
+
+    const signByte = bytes[0];
+    if (signByte !== 0 && signByte !== 1) {
+      throw new Error(`Invalid sign byte: ${signByte}`);
+    }
+
+    const dataBytes = bytes.slice(1);
+    let value = 0n;
+
+    // Convert bytes to BigInt (big-endian)
+    for (let i = 0; i < dataBytes.length; i++) {
+      value = (value << 8n) | BigInt(dataBytes[i]!);
+    }
+
+    // Apply sign
+    if (signByte === 1) {
+      value = -value;
+    }
+
+    return Fixed128.fromBigInt(value);
+  }
+
+  /**
+   * Convert bytes to hex string
+   */
+  private bytesToHex(bytes: Uint8Array): string {
+    return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+  }
+
+  /**
+   * Convert hex string to bytes
+   */
+  private static hexToBytes(hex: string): Uint8Array {
+    if (hex.length % 2 !== 0) {
+      hex = '0' + hex; // Pad with leading zero
+    }
+
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+      bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+    }
+
+    return bytes;
+  }
+
+  /**
    * Value equality check
    */
   equals(other: Fixed128): boolean {

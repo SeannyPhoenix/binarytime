@@ -205,27 +205,180 @@ export class BinaryDuration {
   toString(): string {
     const millis = this.millis();
 
-    // Convert to a human-readable format
-    if (millis === 0n) return 'BinaryDuration(0ms)';
+    // Zero duration
+    if (millis === 0n) return '0ms';
 
     const absMillis = millis < 0n ? -millis : millis;
     const sign = millis < 0n ? '-' : '';
 
-    // Choose appropriate unit
+    // Convert to human-readable format similar to Go's time.Duration
+    const parts: string[] = [];
+
+    // Days (not in Go's standard format, but useful for long durations)
     if (absMillis >= DAY_MILLISECONDS) {
       const days = absMillis / DAY_MILLISECONDS;
-      return `BinaryDuration(${sign}${days}d)`;
-    } else if (absMillis >= 3600000n) { // 1 hour in ms
-      const hours = absMillis / 3600000n;
-      return `BinaryDuration(${sign}${hours}h)`;
-    } else if (absMillis >= 60000n) { // 1 minute in ms
-      const minutes = absMillis / 60000n;
-      return `BinaryDuration(${sign}${minutes}m)`;
-    } else if (absMillis >= 1000n) { // 1 second in ms
-      const seconds = absMillis / 1000n;
-      return `BinaryDuration(${sign}${seconds}s)`;
-    } else {
-      return `BinaryDuration(${sign}${absMillis}ms)`;
+      const remainder = absMillis % DAY_MILLISECONDS;
+      parts.push(`${days}d`);
+
+      if (remainder > 0n) {
+        return sign + parts.join('') + new BinaryDuration(new Fixed128(remainder, DAY_MILLISECONDS)).formatRemainder();
+      }
+      return sign + parts.join('');
     }
+
+    return sign + this.formatRemainder();
+  }
+
+  /**
+   * Format the remainder of a duration (less than a day)
+   */
+  private formatRemainder(): string {
+    const absMillis = this.millis() < 0n ? -this.millis() : this.millis();
+    const parts: string[] = [];
+
+    let remaining = absMillis;
+
+    // Hours
+    if (remaining >= 3_600_000n) {
+      const hours = remaining / 3_600_000n;
+      remaining = remaining % 3_600_000n;
+      parts.push(`${hours}h`);
+    }
+
+    // Minutes
+    if (remaining >= 60_000n) {
+      const minutes = remaining / 60_000n;
+      remaining = remaining % 60_000n;
+      parts.push(`${minutes}m`);
+    }
+
+    // Seconds and milliseconds
+    if (remaining >= 1_000n) {
+      const seconds = remaining / 1_000n;
+      const ms = remaining % 1_000n;
+      if (ms === 0n) {
+        parts.push(`${seconds}s`);
+      } else {
+        // Format as decimal seconds
+        const secWithMs = Number(seconds) + Number(ms) / 1000;
+        parts.push(`${secWithMs}s`);
+      }
+    } else if (remaining > 0n) {
+      // Just milliseconds
+      parts.push(`${remaining}ms`);
+    }
+
+    return parts.join('') || '0ms';
+  }
+
+  /**
+   * Parse a duration string in Go time.Duration format
+   * Supports: "300ms", "1.5h", "2h45m", "1d2h30m", etc.
+   * Valid units: "ms", "s", "m", "h", "d"
+   */
+  static parse(durationStr: string): BinaryDuration {
+    if (!durationStr || durationStr.trim().length === 0) {
+      throw new Error('Empty duration string');
+    }
+
+    let str = durationStr.trim();
+    const isNegative = str.startsWith('-');
+    if (isNegative) {
+      str = str.slice(1);
+    }
+
+    let totalMillis = 0n;
+
+    // Regex to match number+unit pairs
+    const unitRegex = /([0-9]*\.?[0-9]+)([a-zA-Z]+)/g;
+    let match;
+    let hasMatches = false;
+
+    while ((match = unitRegex.exec(str)) !== null) {
+      hasMatches = true;
+      const valueStr = match[1]!;
+      const unit = match[2]!.toLowerCase();
+
+      // Parse the numeric value (may be decimal)
+      const value = parseFloat(valueStr);
+      if (isNaN(value)) {
+        throw new Error(`Invalid number: ${valueStr}`);
+      }
+
+      // Convert to milliseconds based on unit
+      let multiplier: number;
+      switch (unit) {
+        case 'ms':
+          multiplier = 1;
+          break;
+        case 's':
+          multiplier = 1_000;
+          break;
+        case 'm':
+          multiplier = 60_000;
+          break;
+        case 'h':
+          multiplier = 3_600_000;
+          break;
+        case 'd':
+          multiplier = Number(DAY_MILLISECONDS);
+          break;
+        default:
+          throw new Error(`Unknown time unit: ${unit}`);
+      }
+
+      const millis = Math.round(value * multiplier);
+      totalMillis += BigInt(millis);
+    }
+
+    if (!hasMatches) {
+      throw new Error(`Invalid duration format: ${durationStr}`);
+    }
+
+    // Check if we parsed the entire string
+    const reconstructed = str.replace(/([0-9]*\.?[0-9]+)([a-zA-Z]+)/g, '');
+    if (reconstructed.trim().length > 0) {
+      throw new Error(`Invalid duration format: ${durationStr}`);
+    }
+
+    const result = BinaryDuration.fromMillis(totalMillis);
+    return isNegative ? result.neg() : result;
+  }
+
+  /**
+   * Get hex string representation
+   */
+  hex(): string {
+    return this.value.toHexString();
+  }
+
+  /**
+   * Get hex string representation with fine precision
+   */
+  hexFine(): string {
+    return this.value.toHexString();
+  }
+
+  /**
+   * Get base64 string representation
+   */
+  base64(): string {
+    return this.value.toBase64();
+  }
+
+  /**
+   * Create BinaryDuration from hex string representation
+   */
+  static fromHex(hexStr: string): BinaryDuration {
+    const value = Fixed128.fromHexString(hexStr);
+    return new BinaryDuration(value);
+  }
+
+  /**
+   * Create BinaryDuration from base64 string representation
+   */
+  static fromBase64(base64Str: string): BinaryDuration {
+    const value = Fixed128.fromBase64(base64Str);
+    return new BinaryDuration(value);
   }
 }

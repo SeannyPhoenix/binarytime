@@ -207,6 +207,42 @@ export class BinaryDate {
   }
 
   /**
+   * Add a duration (Fixed128) to this date
+   * @param duration - the duration as Fixed128 to add
+   */
+  addFixed128Duration(duration: Fixed128): BinaryDate {
+    const newValue = this.value.add(duration);
+    return new BinaryDate(newValue);
+  }
+
+  /**
+   * Subtract a duration (Fixed128) from this date
+   * @param duration - the duration as Fixed128 to subtract
+   */
+  subFixed128Duration(duration: Fixed128): BinaryDate {
+    const newValue = this.value.sub(duration);
+    return new BinaryDate(newValue);
+  }
+
+  /**
+   * Calculate the duration between this date and another date as Fixed128
+   * @param other - the other date
+   * @returns positive duration if other is after this date, negative if before
+   */
+  durationUntilFixed128(other: BinaryDate): Fixed128 {
+    return other.value.sub(this.value);
+  }
+
+  /**
+   * Calculate the duration since another date as Fixed128
+   * @param other - the other date  
+   * @returns positive duration if this date is after other, negative if before
+   */
+  durationSinceFixed128(other: BinaryDate): Fixed128 {
+    return this.value.sub(other.value);
+  }
+
+  /**
    * String representation for debugging
    */
   toString(): string {
@@ -219,5 +255,55 @@ export class BinaryDate {
    */
   toISOString(): string {
     return this.toDate().toISOString();
+  }
+
+  /**
+   * Get hex string representation with automatic precision
+   * Equivalent to Go's Hex() method
+   */
+  hex(): string {
+    return this.hexWithPrecision(8, 10);
+  }
+
+  /**
+   * Get hex string representation with fine precision
+   * Equivalent to Go's HexFine() method  
+   */
+  hexFine(): string {
+    return this.value.toHexString();
+  }
+
+  /**
+   * Get hex string representation with specified precision
+   * @param high - starting byte index for high part (1-8)
+   * @param low - ending byte index for low part (10-17)
+   */
+  hexWithPrecision(high: number, low: number): string {
+    return this.value.toHexStringWithPrecision(high, low);
+  }
+
+  /**
+   * Get base64 string representation
+   * Equivalent to Go's Base64() method
+   */
+  base64(): string {
+    return this.value.toBase64();
+  }
+
+  /**
+   * Create BinaryDate from hex string representation
+   * @param hexStr - hex string in format "HI.LO" or "-HI.LO"
+   */
+  static fromHex(hexStr: string): BinaryDate {
+    const value = Fixed128.fromHexString(hexStr);
+    return new BinaryDate(value);
+  }
+
+  /**
+   * Create BinaryDate from base64 string representation
+   */
+  static fromBase64(base64Str: string): BinaryDate {
+    const value = Fixed128.fromBase64(base64Str);
+    return new BinaryDate(value);
   }
 }

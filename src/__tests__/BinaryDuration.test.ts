@@ -182,37 +182,37 @@ describe('BinaryDuration', () => {
   describe('string representation', () => {
     it('should format zero duration', () => {
       const duration = BinaryDuration.fromMillis(0n);
-      expect(duration.toString()).toBe('BinaryDuration(0ms)');
+      expect(duration.toString()).toBe('0ms');
     });
 
     it('should format milliseconds', () => {
       const duration = BinaryDuration.fromMillis(123n);
-      expect(duration.toString()).toBe('BinaryDuration(123ms)');
+      expect(duration.toString()).toBe('123ms');
     });
 
     it('should format seconds', () => {
       const duration = BinaryDuration.fromSeconds(45n);
-      expect(duration.toString()).toBe('BinaryDuration(45s)');
+      expect(duration.toString()).toBe('45s');
     });
 
     it('should format minutes', () => {
       const duration = BinaryDuration.fromMinutes(30n);
-      expect(duration.toString()).toBe('BinaryDuration(30m)');
+      expect(duration.toString()).toBe('30m');
     });
 
     it('should format hours', () => {
       const duration = BinaryDuration.fromHours(12n);
-      expect(duration.toString()).toBe('BinaryDuration(12h)');
+      expect(duration.toString()).toBe('12h');
     });
 
     it('should format days', () => {
       const duration = BinaryDuration.fromDays(5n);
-      expect(duration.toString()).toBe('BinaryDuration(5d)');
+      expect(duration.toString()).toBe('5d');
     });
 
     it('should format negative durations', () => {
       const duration = BinaryDuration.fromSeconds(-30n);
-      expect(duration.toString()).toBe('BinaryDuration(-30s)');
+      expect(duration.toString()).toBe('-30s');
     });
   });
 });
