@@ -14,7 +14,9 @@ export class Fixed128 {
    */
   static readonly ZERO = new Fixed128(0n, 1n);
   static readonly ONE = new Fixed128(1n, 1n);
-
+  static readonly TWO = new Fixed128(2n, 1n);
+  static readonly NEGATIVE_ONE = new Fixed128(-1n, 1n);
+  
   /**
    * Create a new Fixed128 representing the fraction x/y
    * @param x - numerator
@@ -51,6 +53,13 @@ export class Fixed128 {
    */
   copy(): Fixed128 {
     return this;
+  }
+
+  /**
+   * Create a Fixed128 from an integer value
+   */
+  static fromInteger(value: bigint): Fixed128 {
+    return new Fixed128(value, 1n);
   }
 
   /**
@@ -145,6 +154,14 @@ export class Fixed128 {
    * Add another Fixed128 to this one
    */
   add(other: Fixed128): Fixed128 {
+    // Fast path: adding zero
+    if (other.isZero()) {
+      return this;
+    }
+    if (this.isZero()) {
+      return other;
+    }
+
     return Fixed128.fromBigInt(this.value + other.value);
   }
 
@@ -152,14 +169,42 @@ export class Fixed128 {
    * Subtract another Fixed128 from this one
    */
   sub(other: Fixed128): Fixed128 {
+    // Fast path: subtracting zero
+    if (other.isZero()) {
+      return this;
+    }
+
     return Fixed128.fromBigInt(this.value - other.value);
   }
 
   /**
    * Multiply this Fixed128 by another
+   * 
+   * For fixed-point multiplication where both operands have 64 fractional bits,
+   * the product has 128 fractional bits, so we need to shift right by 64 bits
+   * to maintain the 64-bit fractional precision.
    */
   mul(other: Fixed128): Fixed128 {
-    return Fixed128.fromBigInt(this.value * other.value);
+    // Fast paths for common cases
+    if (this.isZero() || other.isZero()) {
+      return Fixed128.ZERO;
+    }
+    if (other.equals(Fixed128.ONE)) {
+      return this;
+    }
+    if (this.equals(Fixed128.ONE)) {
+      return other;
+    }
+
+    // Perform the multiplication
+    const product = this.value * other.value;
+
+    // For fixed-point arithmetic: when multiplying two Q64.64 numbers,
+    // the result is Q128.128, so we need to shift right by 64 bits
+    // to get back to Q64.64 format
+    const result = product >> 64n;
+
+    return Fixed128.fromBigInt(result);
   }
 
   /**
@@ -169,11 +214,21 @@ export class Fixed128 {
     if (other.value === 0n) {
       throw new Error('Division by zero');
     }
+
+    // Fast paths for common cases
+    if (this.isZero()) {
+      return Fixed128.ZERO;
+    }
+    if (other.equals(Fixed128.ONE)) {
+      return this;
+    }
+
     return Fixed128.fromBigInt(this.value / other.value);
   }
 
   /**
    * Multiply by a bigint value and return the result as bigint
+   * This implements proper fixed-point multiplication with scaling
    */
   mulBigInt(y: bigint): bigint {
     // Short-circuit optimization for zero
@@ -181,11 +236,19 @@ export class Fixed128 {
       return 0n;
     }
 
+    // Short-circuit optimization for one
+    if (y === 1n) {
+      return this.value >> 64n; // Extract whole part
+    }
+
     const [negX, hi, lo] = Fixed128.disassemble(this);
     const negY = y < 0n;
     const absY = y < 0n ? -y : y;
 
+    // Multiply whole part
     const whole = hi * absY;
+
+    // Multiply fractional part and scale appropriately
     const part = Fixed128.hydrate(lo, absY);
     let result = whole + part;
 
@@ -197,33 +260,59 @@ export class Fixed128 {
   }
 
   /**
-   * Calculate components for x/y division
+   * Calculate components for x/y division with optimizations
    */
   private static getComponents(x: bigint, y: bigint): [bigint, bigint] {
     if (y === 0n) {
       throw new Error('Division by zero in getComponents');
     }
 
-    const hi = x / y;
-    let part = x % y;
+    // Fast path: if x < y, result is 0 with fractional part
+    if (x < y) {
+      const shift = Fixed128.leadingZeros64(y);
+      const scaledY = y << BigInt(shift);
+      const scaledX = x << BigInt(shift);
 
-    const shift = Fixed128.leadingZeros64(y);
-    y = y << BigInt(shift);
-    part = part << BigInt(shift);
+      let lo = 0n;
+      let quotient = scaledX;
+      let divisor = scaledY;
 
-    let lo = 0n;
-    let i = 0;
+      // Optimized bit extraction loop
+      for (let i = 0; i < 64 && divisor > 1n && quotient > 0n; i++) {
+        divisor >>= 1n;
+        if (quotient >= divisor) {
+          lo |= (1n << BigInt(63 - i));
+          quotient -= divisor;
+        }
+      }
 
-    while (i < 64 && y > 1n && part > 0n) {
-      y = y >> 1n;
-      const bit = part / y;
-      part = part - (bit * y);
-      lo = lo << 1n;
-      lo = lo | bit;
-      i++;
+      return [0n, lo];
     }
 
-    lo = lo << BigInt(64 - i);
+    const hi = x / y;
+    const part = x % y;
+
+    // Fast path: if no remainder, return simple result
+    if (part === 0n) {
+      return [hi, 0n];
+    }
+
+    const shift = Fixed128.leadingZeros64(y);
+    const scaledY = y << BigInt(shift);
+    const scaledPart = part << BigInt(shift);
+
+    let lo = 0n;
+    let quotient = scaledPart;
+    let divisor = scaledY;
+
+    // Optimized bit extraction with early termination
+    for (let i = 0; i < 64 && divisor > 1n && quotient > 0n; i++) {
+      divisor >>= 1n;
+      if (quotient >= divisor) {
+        lo |= (1n << BigInt(63 - i));
+        quotient -= divisor;
+      }
+    }
 
     return [hi, lo];
   }
@@ -256,17 +345,27 @@ export class Fixed128 {
   }
 
   /**
-   * Hydrate fractional part
+   * Hydrate fractional part with optimizations
    */
   private static hydrate(lo: bigint, div: bigint): bigint {
+    // Fast path: if fractional part is zero
+    if (lo === 0n) {
+      return 0n;
+    }
+
     const shift = Fixed128.leadingZeros64(div);
-    div = div << BigInt(shift);
+    const scaledDiv = div << BigInt(shift);
 
     let part = 0n;
-    for (let i = 0; i < 64 && div > 0n; i++) {
-      div = div >> 1n;
+    let currentDiv = scaledDiv;
+
+    // Optimized bit processing - avoid expensive division
+    for (let i = 0; i < 64 && currentDiv > 0n; i++) {
+      currentDiv >>= 1n;
       const bit = (lo >> BigInt(63 - i)) & 1n;
-      part = part + (div * bit);
+      if (bit !== 0n) {
+        part += currentDiv;
+      }
     }
 
     part = Fixed128.round(shift, part);
@@ -289,21 +388,50 @@ export class Fixed128 {
   }
 
   /**
-   * Count leading zeros in a 64-bit value
+   * Count leading zeros in a 64-bit value using binary search
    */
   private static leadingZeros64(x: bigint): number {
     if (x === 0n) return 64;
 
-    let count = 0;
-    let mask = 1n << 63n;
+    // Use binary search approach for better performance
+    let n = 0;
 
-    for (let i = 0; i < 64; i++) {
-      if ((x & mask) !== 0n) break;
-      count++;
-      mask = mask >> 1n;
+    // Check upper 32 bits
+    if (x < (1n << 32n)) {
+      n += 32;
+      x <<= 32n;
     }
 
-    return count;
+    // Check upper 16 bits of remaining
+    if (x < (1n << 48n)) {
+      n += 16;
+      x <<= 16n;
+    }
+
+    // Check upper 8 bits of remaining  
+    if (x < (1n << 56n)) {
+      n += 8;
+      x <<= 8n;
+    }
+
+    // Check upper 4 bits of remaining
+    if (x < (1n << 60n)) {
+      n += 4;
+      x <<= 4n;
+    }
+
+    // Check upper 2 bits of remaining
+    if (x < (1n << 62n)) {
+      n += 2;
+      x <<= 2n;
+    }
+
+    // Check upper bit of remaining
+    if (x < (1n << 63n)) {
+      n += 1;
+    }
+
+    return n;
   }
 
   /**
