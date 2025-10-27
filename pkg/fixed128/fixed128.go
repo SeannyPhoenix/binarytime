@@ -206,3 +206,36 @@ func (f128 Fixed128) Quo(b Fixed128) (Fixed128, error) {
 func (f128 Fixed128) MulInt64(y int64) (int64, error) {
 	return mulInt64(f128, y)
 }
+
+// Abs returns the absolute value of the Fixed128.
+// For negative values, it returns the value with the sign removed.
+// For zero and positive values, it returns the same value.
+//
+// Example:
+//
+//	neg := MustNew(-5, 1)
+//	pos := neg.Abs()    // 5
+//
+//	zero := Zero
+//	same := zero.Abs()  // 0
+func (f128 Fixed128) Abs() Fixed128 {
+	var result Fixed128
+	result.value.Abs(&f128.value)
+	return result
+}
+
+// Neg returns the negation (additive inverse) of the Fixed128.
+// That is, it returns -f128.
+//
+// Example:
+//
+//	pos := MustNew(5, 1)
+//	neg := pos.Neg()    // -5
+//
+//	zero := Zero
+//	stillZero := zero.Neg()  // 0 (negation of zero is still zero)
+func (f128 Fixed128) Neg() Fixed128 {
+	var result Fixed128
+	result.value.Neg(&f128.value)
+	return result
+}

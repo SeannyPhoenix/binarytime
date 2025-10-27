@@ -17,72 +17,6 @@ var (
 	ErrInvalidFormat = errors.New("invalid format")
 )
 
-// String implements fmt.Stringer
-func (f128 Fixed128) String() string {
-	if f128.IsZero() {
-		return "00.00"
-	}
-
-	b := f128.bytes()
-
-	high := 1
-	for high < 8 && b[high] == 0 {
-		high++
-	}
-
-	low := 17
-	for low > 10 && b[low-1] == 0 {
-		low--
-	}
-
-	out, err := stringWithPrecision(b, high, low)
-	if err != nil {
-		panic(err)
-	}
-
-	return out
-}
-
-// StringWithPrecision returns a string representation with custom precision control.
-// The high parameter controls how many leading bytes to show for the whole part,
-// and low controls how many trailing bytes to show for the fractional part.
-//
-// Returns an error if the precision parameters are invalid.
-func (f128 Fixed128) StringWithPrecision(high int, low int) (string, error) {
-	return stringWithPrecision(f128.bytes(), high, low)
-}
-
-func stringWithPrecision(b []byte, high int, low int) (string, error) {
-	if len(b) != 17 {
-		return "", fmt.Errorf("invalid length: %d", len(b))
-	}
-	if high >= 9 || low <= 9 {
-		return "", fmt.Errorf("invalid precision: %d, %d", high, low)
-	}
-
-	var s strings.Builder
-	if b[0] == 1 {
-		s.WriteRune('-')
-	}
-	s.WriteString(hex.EncodeToString(b[high:9]))
-	s.WriteRune('.')
-	s.WriteString(hex.EncodeToString(b[9:low]))
-
-	return s.String(), nil
-}
-
-// Parse parses a string representation of a Fixed128.
-// The string should be in the format produced by String(), e.g., "03.14159" or "-01.50".
-//
-// Returns an error if the string is not in the correct format.
-func Parse(s string) (Fixed128, error) {
-	var f128 Fixed128
-	if err := f128.UnmarshalText([]byte(s)); err != nil {
-		return Fixed128{}, err
-	}
-	return f128, nil
-}
-
 // Base64 returns the base64 encoding of the Fixed128's binary representation.
 func (f128 Fixed128) Base64() string {
 	return base64.StdEncoding.EncodeToString(f128.bytes())
@@ -178,6 +112,9 @@ func (f128 *Fixed128) UnmarshalText(text []byte) error {
 	return f128.UnmarshalBinary(buf[:])
 }
 
+// bytes returns the binary representation of the Fixed128 as a 17-byte slice.
+// The first byte indicates the sign (0 for positive, 1 for negative),
+// and the remaining 16 bytes contain the absolute value in big-endian format.
 func (f128 Fixed128) bytes() []byte {
 	var b [17]byte
 	f128.value.FillBytes(b[1:17])
