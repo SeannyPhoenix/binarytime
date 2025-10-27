@@ -43,6 +43,11 @@ func (f128 Fixed128) String() string {
 	return out
 }
 
+// StringWithPrecision returns a string representation with custom precision control.
+// The high parameter controls how many leading bytes to show for the whole part,
+// and low controls how many trailing bytes to show for the fractional part.
+//
+// Returns an error if the precision parameters are invalid.
 func (f128 Fixed128) StringWithPrecision(high int, low int) (string, error) {
 	return stringWithPrecision(f128.bytes(), high, low)
 }
@@ -66,6 +71,10 @@ func stringWithPrecision(b []byte, high int, low int) (string, error) {
 	return s.String(), nil
 }
 
+// Parse parses a string representation of a Fixed128.
+// The string should be in the format produced by String(), e.g., "03.14159" or "-01.50".
+//
+// Returns an error if the string is not in the correct format.
 func Parse(s string) (Fixed128, error) {
 	var f128 Fixed128
 	if err := f128.UnmarshalText([]byte(s)); err != nil {
@@ -74,10 +83,14 @@ func Parse(s string) (Fixed128, error) {
 	return f128, nil
 }
 
+// Base64 returns the base64 encoding of the Fixed128's binary representation.
 func (f128 Fixed128) Base64() string {
 	return base64.StdEncoding.EncodeToString(f128.bytes())
 }
 
+// ParseBase64 parses a base64-encoded Fixed128.
+// Returns an error if the string is not valid base64 or does not represent
+// a valid Fixed128.
 func ParseBase64(s string) (Fixed128, error) {
 	var f128 Fixed128
 	data, err := base64.StdEncoding.DecodeString(s)

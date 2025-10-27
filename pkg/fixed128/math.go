@@ -9,7 +9,7 @@ import (
 
 func toF128(x, y int64) (Fixed128, error) {
 	if y == 0 {
-		return Fixed128{}, fmt.Errorf("division by zero")
+		return Fixed128{}, ErrDivisionByZero
 	}
 
 	negX, absX := normalize(x)
@@ -84,7 +84,7 @@ func disassemble(f128 Fixed128) (bool, uint64, uint64) {
 
 func mulInt64(f128 Fixed128, y int64) (int64, error) {
 	if y == 0 {
-		return 0, fmt.Errorf("division by zero")
+		return 0, ErrDivisionByZero
 	}
 
 	negX, hi, lo := disassemble(f128)
@@ -98,7 +98,7 @@ func mulInt64(f128 Fixed128, y int64) (int64, error) {
 	part := hydrate(lo, absY)
 	x, err := add64(whole, part)
 	if err != nil {
-		return 0, fmt.Errorf("addition overflow: %d + %d", whole, part)
+		return 0, fmt.Errorf("%w: %d + %d", ErrAdditionOverflow, whole, part)
 	}
 
 	if negX != negY {
@@ -111,7 +111,7 @@ func mulInt64(f128 Fixed128, y int64) (int64, error) {
 func multiply64(a, b uint64) (uint64, error) {
 	hi, lo := bits.Mul64(a, b)
 	if hi > 0 {
-		return 0, fmt.Errorf("multiplication overflow: %d * %d", a, b)
+		return 0, fmt.Errorf("%w: %d * %d", ErrMultiplicationOverflow, a, b)
 	}
 
 	return lo, nil
@@ -119,8 +119,8 @@ func multiply64(a, b uint64) (uint64, error) {
 
 func add64(a, b uint64) (int64, error) {
 	sum, carry := bits.Add64(a, b, 0)
-	if sum > math.MaxInt64 || carry > 0 {
-		return 0, fmt.Errorf("addition overflow: %d + %d", a, b)
+	if carry > 0 || sum > math.MaxInt64 {
+		return 0, fmt.Errorf("%w: %d + %d", ErrAdditionOverflow, a, b)
 	}
 	return int64(sum), nil
 }
