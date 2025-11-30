@@ -4,6 +4,10 @@ import (
 	"github.com/seannyphoenix/binarytime/pkg/byteglyph"
 )
 
+func (d Date) MarshalText() ([]byte, error) {
+	return d.value.MarshalText()
+}
+
 func (d Date) String() string {
 	return d.Hex()
 }
