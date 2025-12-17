@@ -57,7 +57,7 @@ func (d Date) DateTimeGlyphs() string {
 }
 
 func coarse(d Date) string {
-	s, _ := d.value.StringWithPrecision(8, 10)
+	s, _ := d.value.StringWithPrecision(7, 11)
 	return s
 }
 
