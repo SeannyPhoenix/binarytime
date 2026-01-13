@@ -20,6 +20,29 @@ func (d Date) Hex() string {
 	return coarse(d)
 }
 
+type Granularity struct {
+	Upper int
+	Lower int
+}
+
+func (g Granularity) ul() (int, int) {
+	if g.Upper <= 0 {
+		g.Upper = 2
+	}
+	g.Upper = min(g.Upper, 8)
+	if g.Lower <= 0 {
+		g.Lower = 2
+	}
+	g.Lower = min(g.Lower, 8)
+
+	return 9 - g.Upper, 9 + g.Lower
+}
+
+func (d Date) HexGranular(g Granularity) string {
+	s, _ := d.value.StringWithPrecision(g.ul())
+	return s
+}
+
 func (d Date) HexFine() string {
 	return fine(d)
 }

@@ -9,16 +9,16 @@ import (
 	"time"
 
 	"gioui.org/app"
-	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/paint"
-	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
-	bcapp "github.com/seannyphoenix/binarytime/internal/clock/app"
-	"github.com/seannyphoenix/binarytime/internal/clock/window"
+	"github.com/seannyphoenix/binarytime/internal/btclock"
+	"github.com/seannyphoenix/binarytime/internal/btclock/btapp"
+	"github.com/seannyphoenix/binarytime/internal/btclock/window"
 	"github.com/seannyphoenix/binarytime/pkg/binarytime"
+	"github.com/seannyphoenix/binarytime/pkg/gui/binaryclock"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 }
 
 func run() error {
-	var state bcapp.State
+	var state btapp.State
 
 	if len(os.Args) > 1 {
 		if os.Args[1] == "-f" {
@@ -41,13 +41,17 @@ func run() error {
 		}
 	}
 
-	window := window.New()
+	window := window.New(app.Decorated(false))
 	theme := material.NewTheme()
 
 	var t binarytime.Date
 
 	startTime := time.Now()
 	var frameCount int
+
+	c := btclock.Clock{
+		Framerate: 25,
+	}
 
 	var ops op.Ops
 	for {
@@ -63,55 +67,69 @@ func run() error {
 
 			t = binarytime.DateFromTime(e.Now)
 
-			stack := op.Offset(image.Point{X: 0, Y: gtx.Dp(unit.Dp(24))}).Push(gtx.Ops)
-			layoutTimeLabel(gtx, t, theme)
-			stack.Pop()
+			// if !state.Sized {
+			// 	// Size the window to fit the current clock string plus some padding.
+			// 	// layout.Dimensions are in px; app.Size expects dp.
+			// 	const padDp = unit.Dp(24)
+			// 	// Re-measure the label to get its pixel dimensions.
+			// 	mgtx := gtx
+			// 	mgtx.Constraints = layout.Constraints{
+			// 		Min: image.Point{},
+			// 		Max: image.Pt(1<<30, 1<<30),
+			// 	}
+			// 	dims := c.Layout(mgtx, t, theme)
 
-			if !state.Sized {
-				// Size the window to fit the current clock string plus some padding.
-				// layout.Dimensions are in px; app.Size expects dp.
-				const padDp = unit.Dp(24)
-				// Re-measure the label to get its pixel dimensions.
-				mgtx := gtx
-				mgtx.Constraints = layout.Constraints{
-					Min: image.Point{},
-					Max: image.Pt(1<<30, 1<<30),
-				}
-				dims := layoutTimeLabel(mgtx, t, theme)
+			// 	// Convert px -> dp using the current metric.
+			// 	pxPerDp := gtx.Metric.PxPerDp
+			// 	wantW := unit.Dp(float32(dims.Size.X)/pxPerDp) + padDp*2
+			// 	wantH := unit.Dp(float32(dims.Size.Y)/pxPerDp) + padDp*2
 
-				// Convert px -> dp using the current metric.
-				pxPerDp := gtx.Metric.PxPerDp
-				wantW := unit.Dp(float32(dims.Size.X)/pxPerDp) + padDp*2
-				wantH := unit.Dp(float32(dims.Size.Y)/pxPerDp) + padDp*2
+			// 	window.Option(app.Size(wantW, wantH))
+			// 	state.Sized = true
+			// }
 
-				window.Option(app.Size(wantW, wantH))
-				state.Sized = true
-			}
+			layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					stack := op.Offset(image.Point{X: 0, Y: gtx.Dp(unit.Dp(24))}).Push(gtx.Ops)
+					c.Layout(gtx, t, theme)
+					stack.Pop()
+					return layout.Dimensions{Size: gtx.Constraints.Max}
+				}),
+				layout.Flexed(1,
+					binaryclock.Clock{Time: t}.Layout,
+				),
+			)
 
 			if state.ShowFrameRate {
 				layoutCountLabel(gtx, theme, frameCount, avgFpS)
 			}
-
-			gtx.Execute(op.InvalidateCmd{At: gtx.Now.Add(100 * time.Millisecond)})
 
 			e.Frame(gtx.Ops)
 		}
 	}
 }
 
-func layoutTimeLabel(gtx layout.Context, t binarytime.Date, theme *material.Theme) layout.Dimensions {
-	label := material.H3(theme, t.String())
-	label.Font.Typeface = "monospace"
-	label.Font.Weight = font.Bold
-	label.Alignment = text.Middle
-	label.Color = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
-	label.MaxLines = 1
-	return label.Layout(gtx)
-}
-
 func layoutCountLabel(gtx layout.Context, theme *material.Theme, count int, avgFpS float64) layout.Dimensions {
-	label := material.Caption(theme, fmt.Sprintf("Frame count: %d, Avg FPS: %.2f", count, avgFpS))
-	label.Font.Typeface = "monospace"
-	label.Color = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
-	return label.Layout(gtx)
+	flex := layout.Flex{
+		Axis:    layout.Horizontal,
+		Spacing: layout.SpaceBetween,
+	}
+
+	return flex.Layout(gtx, layout.Rigid(
+		func(gtx layout.Context) layout.Dimensions {
+			label := material.Caption(theme, fmt.Sprintf("Frame count: %d", count))
+			label.Font.Typeface = "monospace"
+			label.Color = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+			return label.Layout(gtx)
+		},
+	),
+		layout.Rigid(
+			func(gtx layout.Context) layout.Dimensions {
+				label := material.Caption(theme, fmt.Sprintf("Avg FPS: %.2f", avgFpS))
+				label.Font.Typeface = "monospace"
+				label.Color = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+				return label.Layout(gtx)
+			},
+		),
+	)
 }
