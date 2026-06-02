@@ -88,6 +88,12 @@ func (f128 Fixed128) Quo(b Fixed128) (Fixed128, error) {
 	return result, nil
 }
 
+func (f128 Fixed128) Lsh(bits uint) Fixed128 {
+	var result Fixed128
+	result.value.Lsh(&f128.value, bits)
+	return result
+}
+
 func (f128 Fixed128) MulInt64(y int64) (int64, error) {
 	return mulInt64(f128, y)
 }

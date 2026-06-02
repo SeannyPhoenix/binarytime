@@ -7,6 +7,10 @@ import (
 	"github.com/seannyphoenix/binarytime/pkg/fixed128"
 )
 
+var (
+	BinaryTimeOffset = fixed128.One.Lsh(42 + 64)
+)
+
 type Date struct {
 	value fixed128.Fixed128
 }
@@ -26,6 +30,8 @@ func DateFromUnixNanos(nanos int64) Date {
 		return Date{}
 	}
 
+	value = value.Add(BinaryTimeOffset)
+
 	return Date{value: value}
 }
 
@@ -34,7 +40,8 @@ func (d Date) Time() time.Time {
 }
 
 func (d Date) UnixNano() int64 {
-	ns, _ := d.value.MulInt64(dayNs)
+	v := d.value.Sub(BinaryTimeOffset)
+	ns, _ := v.MulInt64(dayNs)
 	return ns
 }
 

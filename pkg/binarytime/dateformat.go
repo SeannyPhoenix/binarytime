@@ -1,11 +1,34 @@
 package binarytime
 
 import (
+	"errors"
+	"fmt"
+	"regexp"
+
 	"github.com/seannyphoenix/binarytime/pkg/byteglyph"
+)
+
+var (
+	BinaryTimeRegexp           = regexp.MustCompile(`^[0-9a-f]{16}\.[0-9a-f]{16}$`)
+	ErrInvalidBinaryTimeFormat = errors.New("invalid binary time format")
+	ErrUnmarshalBinaryTime     = errors.New("error unmarshaling binary time")
 )
 
 func (d Date) MarshalText() ([]byte, error) {
 	return d.value.MarshalText()
+}
+
+func (d *Date) UnmarshalText(text []byte) error {
+	if !BinaryTimeRegexp.Match(text) {
+		return fmt.Errorf("%w: %s", ErrInvalidBinaryTimeFormat, text)
+	}
+
+	err := d.value.UnmarshalText(text)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrUnmarshalBinaryTime, text)
+	}
+
+	return nil
 }
 
 func (d Date) String() string {
