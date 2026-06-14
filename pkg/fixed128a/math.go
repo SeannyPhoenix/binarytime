@@ -1,9 +1,10 @@
-package fixed128
+package fixed128a
 
 import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"math/big"
 	"math/bits"
 )
 
@@ -16,9 +17,16 @@ func toF128(x, y int64) (Fixed128, error) {
 	negY, absY := normalize(y)
 	neg := negX != negY
 
-	hi, lo := getComponents(absX, absY)
+	xBig := big.NewInt(0).SetUint64(absX)
+	yBig := big.NewInt(0).SetUint64(absY)
 
-	f128 := assemble(neg, hi, lo)
+	f128 := Fixed128{value: *xBig}.Lsh(64)
+	f128.value.Div(&f128.value, yBig)
+
+	if neg {
+		f128.value.Neg(&f128.value)
+	}
+
 	return f128, nil
 }
 
@@ -27,48 +35,6 @@ func normalize(v int64) (bool, uint64) {
 	neg := mask != 0
 	abs := (uint64(v) ^ mask) - mask
 	return neg, abs
-}
-
-func getComponents(x, y uint64) (uint64, uint64) {
-	if y == 0 {
-		panic(fmt.Sprintf("division by zero in getComponents: x %d, y %d", x, y))
-	}
-
-	var hi, lo uint64
-	hi = x / y
-	part := x % y
-
-	shift := bits.LeadingZeros64(y)
-	y <<= shift
-	part <<= shift
-
-	var i int
-	for ; i < 64 && y > 1 && part > 0; i++ {
-		y >>= 1
-		bit := part / y
-		part -= bit * y
-		lo <<= 1
-		lo |= bit
-	}
-
-	lo <<= (64 - i)
-
-	return hi, lo
-}
-
-func assemble(neg bool, hi, lo uint64) Fixed128 {
-	var f128 Fixed128
-
-	var buf [16]byte
-	binary.BigEndian.PutUint64(buf[:8], hi)
-	binary.BigEndian.PutUint64(buf[8:], lo)
-	f128.value.SetBytes(buf[:])
-
-	if neg {
-		f128.value.Neg(&f128.value)
-	}
-
-	return f128
 }
 
 func disassemble(f128 Fixed128) (bool, uint64, uint64) {
@@ -83,10 +49,6 @@ func disassemble(f128 Fixed128) (bool, uint64, uint64) {
 }
 
 func mulInt64(f128 Fixed128, y int64) (int64, error) {
-	if y == 0 {
-		return 0, fmt.Errorf("division by zero")
-	}
-
 	negX, hi, lo := disassemble(f128)
 	negY, absY := normalize(y)
 

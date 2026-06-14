@@ -7,14 +7,14 @@ import (
 	"strconv"
 
 	"github.com/seannyphoenix/binarytime/pkg/binarytime"
-	"github.com/seannyphoenix/binarytime/pkg/fixed128"
+	"github.com/seannyphoenix/binarytime/pkg/fixed128a"
 )
 
 func main() {
 	// funcs["a"]()
 	// funcs["b"]()
-	funcs["c"]()
-	funcs["d"]()
+	// funcs["c"]()
+	// funcs["d"]()
 }
 
 var funcs = map[string]func(){
@@ -25,7 +25,7 @@ var funcs = map[string]func(){
 }
 
 func d() {
-	f128 := fixed128.MustNew(123478392543, 134332)
+	f128 := fixed128a.MustNew(123478392543, 134332)
 	// f128 := fixed128.MustNew(-30, 12)
 	b, err := json.MarshalIndent(f128, "", "  ")
 	if err != nil {
@@ -39,7 +39,7 @@ func d() {
 }
 
 func c() {
-	v1 := fixed128.MustNew(30, 6)
+	v1 := fixed128a.MustNew(30, 6)
 	fmt.Println("Fixed128 value:", v1)
 }
 
@@ -58,7 +58,7 @@ func a() {
 	}
 
 	fmt.Println("Arguments received:", x, y)
-	f128, err := fixed128.New(x, y)
+	f128, err := fixed128a.New(x, y)
 	if err != nil {
 		fmt.Println("Error creating Fixed128:", err)
 		return

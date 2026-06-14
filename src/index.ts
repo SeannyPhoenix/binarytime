@@ -6,7 +6,7 @@ const DAY_MS = 86_400_000n;
 // to ensure no negatives and to allow for dates
 // far in the past and future without overflow issues.
 // Approximately 24.08 billion years in BinaryTime
-const BINARY_TIME_OFFSET = (1n << 43n) << 64n;
+const BINARY_TIME_OFFSET = (1n << 42n) << 64n;
 
 // Exactly 16 hex digits, a period, and 16 hex digits
 // Represents 128 bits, or 16 bytes

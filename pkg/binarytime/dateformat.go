@@ -23,7 +23,7 @@ func (d *Date) UnmarshalText(text []byte) error {
 		return fmt.Errorf("%w: %s", ErrInvalidBinaryTimeFormat, text)
 	}
 
-	err := d.value.UnmarshalText(text)
+	err := d.value.UnmarshalText(append(text[0:16], text[17:]...))
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrUnmarshalBinaryTime, text)
 	}

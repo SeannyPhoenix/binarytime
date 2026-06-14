@@ -4,15 +4,15 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/seannyphoenix/binarytime/pkg/fixed128"
+	"github.com/seannyphoenix/binarytime/pkg/fixed128a"
 )
 
 var (
-	BinaryTimeOffset = fixed128.One.Lsh(42 + 64)
+	BinaryTimeOffset = fixed128a.One.Lsh(42 + 64)
 )
 
 type Date struct {
-	value fixed128.Fixed128
+	value fixed128a.Fixed128
 }
 
 func Now() Date {
@@ -25,7 +25,7 @@ func DateFromTime(t time.Time) Date {
 
 // DateFromUnixNanos creates a BinaryTime from a Unix timestamp in nanoseconds.
 func DateFromUnixNanos(nanos int64) Date {
-	value, err := fixed128.New(nanos, dayNs)
+	value, err := fixed128a.New(nanos, dayNs)
 	if err != nil {
 		return Date{}
 	}
@@ -65,7 +65,7 @@ func (d Date) Equals(other Date) bool {
 
 // Value returns the underlying Fixed128 value of the BinaryTime.
 // This is a copy of the value, not a reference.
-func (d Date) Fixed128() fixed128.Fixed128 {
+func (d Date) Fixed128() fixed128a.Fixed128 {
 	f128 := d.value
 	return f128
 }

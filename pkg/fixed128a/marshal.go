@@ -1,4 +1,4 @@
-package fixed128
+package fixed128a
 
 import (
 	"encoding/base64"

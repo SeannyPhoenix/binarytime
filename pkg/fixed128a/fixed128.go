@@ -1,12 +1,16 @@
-package fixed128
+// The fixed128 package represents a 128-bit fixed-point fractional number.
+// The top 64 bits represent the whole part, and the bottom 64 bits represent
+// the fractional part. The underlying data is stored in a big.Int.
+
+package fixed128a
 
 import (
-	"fmt"
 	"math/big"
 )
 
 var (
-	ErrorDivisionByZero = fmt.Errorf("division by zero")
+	Zero = Fixed128{}
+	One  = Fixed128{value: *big.NewInt(1)}
 )
 
 type Fixed128 struct {
@@ -14,27 +18,7 @@ type Fixed128 struct {
 }
 
 func New(x, y int64) (Fixed128, error) {
-	var f128 Fixed128
-
-	if y == 0 {
-		return Fixed128{}, ErrorDivisionByZero
-	}
-
-	absX, negX := normalize(x)
-	absY, negY := normalize(y)
-	neg := negX != negY
-
-	xBig := big.NewInt(0).SetUint64(absX)
-	yBig := big.NewInt(0).SetUint64(absY)
-
-	f128.value.Lsh(xBig, 64)
-	f128.value.Div(&f128.value, yBig)
-
-	if neg {
-		f128.value.Neg(&f128.value)
-	}
-
-	return f128, nil
+	return toF128(x, y)
 }
 
 func MustNew(x, y int64) Fixed128 {
@@ -43,13 +27,6 @@ func MustNew(x, y int64) Fixed128 {
 		panic(err)
 	}
 	return f128
-}
-
-func normalize(v int64) (uint64, bool) {
-	mask := uint64(v >> 63)
-	neg := mask != 0
-	abs := (uint64(v) ^ mask) - mask
-	return abs, neg
 }
 
 func (f128 Fixed128) Copy() Fixed128 {
