@@ -17,7 +17,7 @@ func New(x, y int64) (Fixed128, error) {
 	var f128 Fixed128
 
 	if y == 0 {
-		return Fixed128{}, ErrorDivisionByZero
+		return f128, ErrorDivisionByZero
 	}
 
 	absX, negX := normalize(x)
@@ -78,14 +78,14 @@ func (f128 Fixed128) IsZero() bool {
 	return f128.value.Sign() == 0
 }
 
-func (f128 Fixed128) HiLo() (uint64, uint64) {
-	_, hi, lo := disassemble(f128)
-	return hi, lo
-}
+// func (f128 Fixed128) HiLo() (uint64, uint64) {
+// 	_, hi, lo := disassemble(f128)
+// 	return hi, lo
+// }
 
-func (f128 Fixed128) Bytes() []byte {
-	return f128.bytes()
-}
+// func (f128 Fixed128) Bytes() []byte {
+// 	return f128.bytes()
+// }
 
 func (f128 Fixed128) Add(b Fixed128) Fixed128 {
 	var result Fixed128
@@ -117,6 +117,6 @@ func (f128 Fixed128) Lsh(bits uint) Fixed128 {
 	return result
 }
 
-func (f128 Fixed128) MulInt64(y int64) (int64, error) {
-	return mulInt64(f128, y)
-}
+// func (f128 Fixed128) MulInt64(y int64) (int64, error) {
+// 	return mulInt64(f128, y)
+// }
