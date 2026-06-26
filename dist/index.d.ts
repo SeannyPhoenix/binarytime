@@ -1,0 +1,10 @@
+import * as z from "zod";
+export type BinaryTime = bigint;
+export declare function binaryTimeFromString(s: string): BinaryTime;
+export declare function binaryTimeToString(b: BinaryTime): string;
+export declare const zBinaryTime: z.ZodCodec<z.ZodString, z.ZodBigInt>;
+export declare function binaryTimeNow(): BinaryTime;
+export declare function binaryTimeFromDate(date: Date): BinaryTime;
+export declare function binaryTimeFromMs(ms: bigint): BinaryTime;
+export declare function binaryTimeToMs(binarytime: BinaryTime): number;
+export declare function binaryTimeToDate(binarytime: BinaryTime): Date;

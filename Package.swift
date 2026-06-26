@@ -10,7 +10,7 @@ let package = Package(
         .library(
             name: "binarytime",
             targets: ["binarytime"]
-        ),
+        )
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -21,6 +21,11 @@ let package = Package(
         .testTarget(
             name: "binarytimeTests",
             dependencies: ["binarytime"]
+        ),
+        .target(name: "Fixed128"),
+        .testTarget(
+            name: "Fixed128Tests",
+            dependencies: ["Fixed128"]
         ),
     ],
     swiftLanguageModes: [.v6]

@@ -29,7 +29,6 @@ tmp/
 temp/
 
 node_modules/
-dist/
 build/
 
 # Swift

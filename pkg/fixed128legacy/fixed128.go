@@ -1,16 +1,12 @@
-// The fixed128 package represents a 128-bit fixed-point fractional number.
-// The top 64 bits represent the whole part, and the bottom 64 bits represent
-// the fractional part. The underlying data is stored in a big.Int.
-
-package fixed128a
+package fixed128legacy
 
 import (
+	"fmt"
 	"math/big"
 )
 
 var (
-	Zero = Fixed128{}
-	One  = Fixed128{value: *big.NewInt(1)}
+	ErrorDivisionByZero = fmt.Errorf("division by zero")
 )
 
 type Fixed128 struct {
@@ -18,7 +14,27 @@ type Fixed128 struct {
 }
 
 func New(x, y int64) (Fixed128, error) {
-	return toF128(x, y)
+	var f128 Fixed128
+
+	if y == 0 {
+		return f128, ErrorDivisionByZero
+	}
+
+	absX, negX := normalize(x)
+	absY, negY := normalize(y)
+	neg := negX != negY
+
+	xBig := big.NewInt(0).SetUint64(absX)
+	yBig := big.NewInt(0).SetUint64(absY)
+
+	f128.value.Lsh(xBig, 64)
+	f128.value.Div(&f128.value, yBig)
+
+	if neg {
+		f128.value.Neg(&f128.value)
+	}
+
+	return f128, nil
 }
 
 func MustNew(x, y int64) Fixed128 {
@@ -27,6 +43,13 @@ func MustNew(x, y int64) Fixed128 {
 		panic(err)
 	}
 	return f128
+}
+
+func normalize(v int64) (uint64, bool) {
+	mask := uint64(v >> 63)
+	neg := mask != 0
+	abs := (uint64(v) ^ mask) - mask
+	return abs, neg
 }
 
 func (f128 Fixed128) Copy() Fixed128 {
@@ -55,14 +78,14 @@ func (f128 Fixed128) IsZero() bool {
 	return f128.value.Sign() == 0
 }
 
-func (f128 Fixed128) HiLo() (uint64, uint64) {
-	_, hi, lo := disassemble(f128)
-	return hi, lo
-}
+// func (f128 Fixed128) HiLo() (uint64, uint64) {
+// 	_, hi, lo := disassemble(f128)
+// 	return hi, lo
+// }
 
-func (f128 Fixed128) Bytes() []byte {
-	return f128.bytes()
-}
+// func (f128 Fixed128) Bytes() []byte {
+// 	return f128.bytes()
+// }
 
 func (f128 Fixed128) Add(b Fixed128) Fixed128 {
 	var result Fixed128
@@ -94,6 +117,6 @@ func (f128 Fixed128) Lsh(bits uint) Fixed128 {
 	return result
 }
 
-func (f128 Fixed128) MulInt64(y int64) (int64, error) {
-	return mulInt64(f128, y)
-}
+// func (f128 Fixed128) MulInt64(y int64) (int64, error) {
+// 	return mulInt64(f128, y)
+// }
