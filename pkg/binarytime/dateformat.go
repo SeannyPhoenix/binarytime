@@ -1,21 +1,34 @@
 package binarytime
 
 import (
+	"encoding"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"regexp"
 
 	"github.com/seannyphoenix/binarytime/pkg/byteglyph"
+	"github.com/seannyphoenix/binarytime/pkg/fixed128"
 )
 
 var (
-	BinaryTimeRegexp           = regexp.MustCompile(`^[0-9a-f]{16}\.[0-9a-f]{16}$`)
+	BinaryTimeRegexp           = regexp.MustCompile(`^@[0-9a-f]{16}\.[0-9a-f]{16}$`)
 	ErrInvalidBinaryTimeFormat = errors.New("invalid binary time format")
-	ErrUnmarshalBinaryTime     = errors.New("error unmarshaling binary time")
+)
+
+var (
+	_ encoding.BinaryMarshaler   = (*Date)(nil)
+	_ encoding.BinaryUnmarshaler = (*Date)(nil)
+
+	_ encoding.TextMarshaler   = (*Date)(nil)
+	_ encoding.TextUnmarshaler = (*Date)(nil)
 )
 
 func (d Date) MarshalText() ([]byte, error) {
-	return d.value.MarshalText()
+	hi := d.value.Bytes()[0:8]
+	lo := d.value.Bytes()[8:16]
+
+	return fmt.Appendf(nil, "@%016x.%016x", hi, lo), nil
 }
 
 func (d *Date) UnmarshalText(text []byte) error {
@@ -23,55 +36,24 @@ func (d *Date) UnmarshalText(text []byte) error {
 		return fmt.Errorf("%w: %s", ErrInvalidBinaryTimeFormat, text)
 	}
 
-	err := d.value.UnmarshalText(append(text[0:16], text[17:]...))
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrUnmarshalBinaryTime, text)
-	}
+	hi := binary.BigEndian.Uint64(text[1:17])
+	lo := binary.BigEndian.Uint64(text[18:34])
 
+	d.value = fixed128.FromParts(hi, lo, false)
 	return nil
 }
 
-func (d Date) String() string {
-	return d.Hex()
+func (d Date) MarshalBinary() ([]byte, error) {
+	return d.value.Bytes(), nil
 }
 
-func (d Date) StringFine() string {
-	return d.HexFine()
-}
-
-func (d Date) Hex() string {
-	return coarse(d)
-}
-
-type Granularity struct {
-	Upper int
-	Lower int
-}
-
-func (g Granularity) ul() (int, int) {
-	if g.Upper <= 0 {
-		g.Upper = 2
+func (d *Date) UnmarshalBinary(data []byte) error {
+	value, err := fixed128.FromBytes(data)
+	if err != nil {
+		return err
 	}
-	g.Upper = min(g.Upper, 8)
-	if g.Lower <= 0 {
-		g.Lower = 2
-	}
-	g.Lower = min(g.Lower, 8)
-
-	return 9 - g.Upper, 9 + g.Lower
-}
-
-func (d Date) HexGranular(g Granularity) string {
-	s, _ := d.value.StringWithPrecision(g.ul())
-	return s
-}
-
-func (d Date) HexFine() string {
-	return fine(d)
-}
-
-func (d Date) Base64() string {
-	return d.value.Base64()
+	d.value = value
+	return nil
 }
 
 // Glyphs returns a string representation of the BinaryTime using byteglyphs.
@@ -100,13 +82,4 @@ func (d Date) DateGlyphs() string {
 // which represent the date up to the centuries level and time down to the seconds level.
 func (d Date) DateTimeGlyphs() string {
 	return byteglyph.Glyphs(d.Bytes()[6:10], 2)
-}
-
-func coarse(d Date) string {
-	s, _ := d.value.StringWithPrecision(7, 11)
-	return s
-}
-
-func fine(d Date) string {
-	return d.value.String()
 }

@@ -1,7 +1,6 @@
 package binarytime
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/seannyphoenix/binarytime/pkg/fixed128"
@@ -51,17 +50,9 @@ func (d Date) UnixNano() int64 {
 	return ns
 }
 
-// Copy creates a copy of the BinaryTime.
-// This is useful for ensuring that the original BinaryTime is not modified.
-func (d Date) Copy() Date {
-	return Date{
-		value: d.value.Copy(),
-	}
-}
-
 // IsZero checks if the BinaryTime is zero.
 func (d Date) IsZero() bool {
-	return d.value.Sign() == 0
+	return d.value.IsZero()
 }
 
 // Equals checks if two BinaryTime instances are equal.
@@ -69,20 +60,21 @@ func (d Date) Equals(other Date) bool {
 	return d.value.Cmp(other.value) == 0
 }
 
-// Value returns the underlying Fixed128 value of the BinaryTime.
+// Fixed128 returns the underlying Fixed128 value of the Date.
 // This is a copy of the value, not a reference.
-func (d Date) Fixed128() uint128.uint128 {
-	f128 := d.value
-	return f128
-}
-
-func (d Date) BigInt() big.Int {
-	return d.value.Value()
+func (d Date) Fixed128() fixed128.Fixed128 {
+	return d.value
 }
 
 func (d Date) Bytes() []byte {
-	bytes := make([]byte, 16)
-	bi := d.BigInt()
-	bi.FillBytes(bytes[:])
-	return bytes
+	return d.value.Bytes()
+}
+
+func DateFromBytes(b []byte) (Date, error) {
+	value, err := fixed128.FromBytes(b)
+	d := Date{value: value}
+	if err != nil {
+		return d, err
+	}
+	return d, nil
 }

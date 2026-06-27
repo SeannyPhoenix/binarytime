@@ -3,19 +3,19 @@ package binarytime
 import (
 	"time"
 
-	"github.com/seannyphoenix/binarytime/pkg/uint128"
+	"github.com/seannyphoenix/binarytime/pkg/fixed128"
 )
 
 type Duration struct {
-	value uint128.uint128
+	value fixed128.Fixed128
 }
 
 func FromDuration(d time.Duration) Duration {
-	return FromNanoseconds(d.Nanoseconds())
+	return FromNanos(d.Nanoseconds())
 }
 
-func FromNanoseconds(nanos int64) Duration {
-	v, err := uint128.New(nanos, dayNs)
+func FromNanos(nanos int64) Duration {
+	v, err := fixed128.ByDivision(nanos, dayNs)
 	if err != nil {
 		return Duration{}
 	}
