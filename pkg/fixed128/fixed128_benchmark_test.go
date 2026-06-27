@@ -1,18 +1,37 @@
 package fixed128
 
 import (
-	"math/rand"
 	"testing"
 )
 
-func BenchmarkByDivision(b *testing.B) {
+func BenchmarkCmp(b *testing.B) {
+	a := Fixed128{hi: 100, lo: 200, neg: false}
+	c := Fixed128{hi: 50, lo: 100, neg: true}
 	for b.Loop() {
-		b.StopTimer()
-		x, y := rand.Int63(), rand.Int63()
-		b.StartTimer()
-		_, err := ByDivision(x, y)
-		if err != nil {
-			b.Fatal(err)
-		}
+		_ = a.Cmp(c)
+	}
+}
+
+func BenchmarkAdd(b *testing.B) {
+	a := Fixed128{hi: 100, lo: 200, neg: false}
+	c := Fixed128{hi: 50, lo: 100, neg: false}
+	for b.Loop() {
+		_, _ = a.Add(c)
+	}
+}
+
+func BenchmarkAddDifferentSigns(b *testing.B) {
+	a := Fixed128{hi: 100, lo: 200, neg: false}
+	c := Fixed128{hi: 50, lo: 100, neg: true}
+	for b.Loop() {
+		_, _ = a.Add(c)
+	}
+}
+
+func BenchmarkSub(b *testing.B) {
+	a := Fixed128{hi: 100, lo: 200, neg: false}
+	c := Fixed128{hi: 50, lo: 100, neg: false}
+	for b.Loop() {
+		_, _ = a.Sub(c)
 	}
 }

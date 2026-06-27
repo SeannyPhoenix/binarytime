@@ -1,5 +1,7 @@
 package fixed128
 
+import "encoding/binary"
+
 var (
 	Zero        = Fixed128{}
 	One         = Fixed128{hi: 1}
@@ -53,13 +55,51 @@ func (f128 Fixed128) Parts() (uint64, uint64, bool) {
 // Add adds two Fixed128 numbers and returns the result.
 // It returns an error if the addition results in an overflow.
 func (f128 Fixed128) Add(other Fixed128) (Fixed128, error) {
-	return add(f128, other)
+	// Can safely add same-signed values
+	if f128.neg == other.neg {
+		return add(f128, other)
+	}
+
+	// If the signs are different, we need to perform subtraction
+	// Determine which value is larger in absolute terms
+	cmp := absCmp(f128, other)
+	switch cmp {
+	case 0:
+		// If they are equal, the result is zero
+		return Zero, nil
+	case 1:
+		// f128 is larger in absolute terms
+		result, err := sub(f128, other)
+		if err != nil {
+			return Zero, err
+		}
+		result.neg = f128.neg // Result takes the sign of the larger value
+		return result, nil
+	case -1:
+		// other is larger in absolute terms
+		result, err := sub(other, f128)
+		if err != nil {
+			return Zero, err
+		}
+		result.neg = other.neg // Result takes the sign of the larger value
+		return result, nil
+	default:
+		return Zero, ErrorAdditionOverflow // This should never happen
+	}
 }
 
 // Sub subtracts another Fixed128 number from the current one and returns the result.
 // It returns an error if the subtraction results in an underflow.
 func (f128 Fixed128) Sub(other Fixed128) (Fixed128, error) {
-	return sub(f128, other)
+	return f128.Add(other.Negate())
+}
+
+func (f128 Fixed128) Negate() Fixed128 {
+	return Fixed128{
+		hi:  f128.hi,
+		lo:  f128.lo,
+		neg: !f128.neg,
+	}
 }
 
 func (f128 Fixed128) Cmp(other Fixed128) int {
@@ -70,31 +110,36 @@ func (f128 Fixed128) Cmp(other Fixed128) int {
 		return 1
 	}
 
-	if f128.hi < other.hi {
-		if f128.neg {
-			return 1
-		}
-		return -1
+	cmpResult := absCmp(f128, other)
+	if f128.neg {
+		cmpResult = -cmpResult
 	}
-	if f128.hi > other.hi {
-		if f128.neg {
-			return -1
-		}
-		return 1
-	}
+	return cmpResult
+}
 
-	if f128.lo < other.lo {
-		if f128.neg {
-			return 1
-		}
-		return -1
-	}
-	if f128.lo > other.lo {
-		if f128.neg {
-			return -1
-		}
-		return 1
-	}
+func (f128 Fixed128) Bytes() []byte {
+	b := make([]byte, 16)
+	binary.BigEndian.PutUint64(b[:8], f128.hi)
+	binary.BigEndian.PutUint64(b[8:], f128.lo)
+	return b
+}
 
-	return 0
+func FromBytes(b []byte) (Fixed128, error) {
+	f128 := Fixed128{}
+	if len(b) != 16 {
+		return f128, ErrorBadByteLength
+	}
+	f128.hi = binary.BigEndian.Uint64(b[:8])
+	f128.lo = binary.BigEndian.Uint64(b[8:])
+	return f128, nil
+}
+
+func (f128 Fixed128) Sign() bool {
+	return f128.neg
+}
+
+// MulInt64 multiplies the Fixed128 by an int64 and returns the result as int64.
+// It returns an error if the multiplication would overflow.
+func (f128 Fixed128) MulInt64(multiplier int64) (int64, error) {
+	return mulInt64(f128, multiplier)
 }

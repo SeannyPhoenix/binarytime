@@ -9,6 +9,7 @@ var (
 	ErrorDivisionByZero       = errors.New("division by zero")
 	ErrorAdditionOverflow     = errors.New("addition overflow")
 	ErrorSubtractionUnderflow = errors.New("subtraction underflow")
+	ErrorBadByteLength        = errors.New("bad byte length")
 )
 
 func divide(x, y int64) (Fixed128, error) {
@@ -81,4 +82,43 @@ func sub(a, b Fixed128) (Fixed128, error) {
 		lo:  lo,
 		neg: a.neg,
 	}, nil
+}
+
+func absCmp(a, b Fixed128) int {
+	hiDiff := int64(a.hi - b.hi)
+	loDiff := int64(a.lo - b.lo)
+
+	hiSign := hiDiff>>63 - ((-hiDiff) >> 63)
+	loSign := loDiff>>63 - ((-loDiff) >> 63)
+
+	mask := (hiDiff | -hiDiff) >> 63
+
+	return int((hiSign & mask) | (loSign & ^mask))
+}
+
+func mulInt64(f128 Fixed128, multiplier int64) (int64, error) {
+	// Handle sign
+	negMul := multiplier < 0
+	absMul := uint64(multiplier)
+	if negMul {
+		absMul = uint64(-multiplier)
+	}
+
+	// Multiply hi and lo parts using 64-bit multiplication
+	hiHigh, hiLow := bits.Mul64(f128.hi, absMul)
+	loHigh, _ := bits.Mul64(f128.lo, absMul)
+
+	// Add fractional overflow from lo to hi result
+	result, carry := bits.Add64(hiLow, loHigh, 0)
+	if hiHigh != 0 || carry != 0 {
+		return 0, ErrorAdditionOverflow
+	}
+
+	// Apply sign: flip if f128 and multiplier have different signs
+	signResult := int64(result)
+	if f128.neg != negMul {
+		signResult = -signResult
+	}
+
+	return signResult, nil
 }
