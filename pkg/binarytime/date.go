@@ -60,6 +60,16 @@ func (d Date) Equals(other Date) bool {
 	return d.value.Cmp(other.value) == 0
 }
 
+// GreaterThan checks if the BinaryTime is greater than another BinaryTime.
+func (d Date) GreaterThan(other Date) bool {
+	return d.value.Cmp(other.value) > 0
+}
+
+// LessThan checks if the BinaryTime is less than another BinaryTime.
+func (d Date) LessThan(other Date) bool {
+	return d.value.Cmp(other.value) < 0
+}
+
 // Fixed128 returns the underlying Fixed128 value of the Date.
 // This is a copy of the value, not a reference.
 func (d Date) Fixed128() fixed128.Fixed128 {
